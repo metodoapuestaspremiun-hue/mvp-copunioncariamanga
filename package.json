@@ -1,0 +1,37 @@
+{
+  "name": "trazabilidad-encomiendas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP demo - Trazabilidad de Encomiendas (Cooperativa Union Transportes Cariamanga)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration --no-file-parallelism",
+    "test:all": "vitest run --no-file-parallelism",
+    "db:init": "tsx --env-file=.env scripts/db-init.ts",
+    "seed:usuarios": "tsx --env-file=.env scripts/seed-usuarios.ts",
+    "reset:demo": "tsx --env-file=.env scripts/reset-demo.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "mysql2": "^3.11.0",
+    "next": "^15.1.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
