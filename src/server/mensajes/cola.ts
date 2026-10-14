@@ -31,7 +31,9 @@ export function despertarCola() {
 }
 
 function permitido(tel: string): boolean {
-  const lista = (process.env.MENSAJES_NUMEROS_PERMITIDOS || '').split(',').map(s => normalizarTel(s.trim())).filter(Boolean);
+  const permitidosConfig = (process.env.MENSAJES_NUMEROS_PERMITIDOS || '').trim();
+  if (!permitidosConfig) return true; // Si está vacío, se permite enviar a cualquier número
+  const lista = permitidosConfig.split(',').map(s => normalizarTel(s.trim())).filter(Boolean);
   return lista.includes(tel);
 }
 
