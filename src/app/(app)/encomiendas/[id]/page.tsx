@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { llamar, dinero, fechaEC, fmtLegible } from '@/lib/cliente';
-import { Error_, Estado, Etiqueta } from '@/components/ui';
+import { Error_, Estado, Etiqueta, BotonAtras } from '@/components/ui';
 
 export default function Detalle() {
   const { id } = useParams<{ id: string }>();
@@ -11,7 +11,9 @@ export default function Detalle() {
   useEffect(() => { llamar('/api/encomiendas/' + id).then(setE).catch(setErr); }, [id]);
   if (!e) return <div><Error_ e={err} />Cargando...</div>;
   return (
-    <div><h1>Encomienda {e.codigo} <Estado e={e.estado_calculado ?? 'en_proceso'} /></h1>
+    <div>
+      <BotonAtras href="/encomiendas" label="Volver a Encomiendas" />
+      <h1>Encomienda {e.codigo} <Estado e={e.estado_calculado ?? 'en_proceso'} /></h1>
       <div className="grid">
         <div className="card"><h2>Datos</h2><p>{e.origen_nombre} → <b>{e.destino_nombre}</b></p>
           <p>Remitente: {e.remitente_nombre} {e.remitente_tel}<br />Destinatario: {e.dest_nombre} {e.dest_tel}</p>

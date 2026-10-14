@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { llamar, fmtLegible } from '@/lib/cliente';
-import { Error_, Estado } from '@/components/ui';
+import { Error_, Estado, BotonAtras } from '@/components/ui';
 import { useUsuario } from '@/components/Sesion';
 import { puede } from '@/shared/permisos';
 
@@ -28,6 +28,7 @@ export default function Viaje() {
 
   return (
     <div>
+      <BotonAtras href="/viajes" label="Volver a Viajes" />
       <h1>Viaje {v.vehiculo} · {v.ruta}</h1>
       <Error_ e={err} />{ok && <div className="okmsg">{ok}</div>}
 
@@ -118,25 +119,27 @@ export default function Viaje() {
       {/* Manifiesto */}
       <div className="card">
         <h2>Manifiesto · versión {v.version}</h2>
-        <table>
-          <thead><tr><th>Bulto</th><th>Encomienda</th><th>Destinatario</th><th>Sube</th><th>Baja</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            {v.items.map((it: any) => (
-              <tr key={it.bulto_id}>
-                <td className="mono">{fmtLegible(it.codigo_legible)}</td>
-                <td>{it.enc_codigo} #{it.numero}</td>
-                <td>{it.dest_nombre}</td>
-                <td>{nombreP(it.sube_orden)}</td>
-                <td>{nombreP(it.baja_orden)}</td>
-                <td><Estado e={it.estado} /></td>
-                <td>{gestiona && v.borrador && (
-                  <button className="sec" onClick={() => act(() => llamar(`/api/viajes/${id}/manifiesto/items?bultoId=${it.bulto_id}`, 'DELETE'), 'Paquete quitado')}>Quitar</button>
-                )}</td>
-              </tr>
-            ))}
-            {!v.items.length && <tr><td colSpan={7} className="muted">Sin paquetes en el manifiesto</td></tr>}
-          </tbody>
-        </table>
+        <div className="tabla-scroll">
+          <table className="tabla-fija">
+            <thead><tr><th>Bulto</th><th>Encomienda</th><th>Destinatario</th><th>Sube</th><th>Baja</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              {v.items.map((it: any) => (
+                <tr key={it.bulto_id}>
+                  <td className="mono">{fmtLegible(it.codigo_legible)}</td>
+                  <td>{it.enc_codigo} #{it.numero}</td>
+                  <td>{it.dest_nombre}</td>
+                  <td>{nombreP(it.sube_orden)}</td>
+                  <td>{nombreP(it.baja_orden)}</td>
+                  <td><Estado e={it.estado} /></td>
+                  <td>{gestiona && v.borrador && (
+                    <button className="sec" onClick={() => act(() => llamar(`/api/viajes/${id}/manifiesto/items?bultoId=${it.bulto_id}`, 'DELETE'), 'Paquete quitado')}>Quitar</button>
+                  )}</td>
+                </tr>
+              ))}
+              {!v.items.length && <tr><td colSpan={7} className="muted">Sin paquetes en el manifiesto</td></tr>}
+            </tbody>
+          </table>
+        </div>
 
         {/* Resumen por parada */}
         <p className="muted" style={{ marginTop: 8 }}>

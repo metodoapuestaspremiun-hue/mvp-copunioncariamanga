@@ -73,26 +73,31 @@ const ROL_CONFIG: Record<string, { nombre: string; email: string; roles: { rol: 
     roles: [{ rol: 'ayudante', agenciaId: null }],
   },
   guardia: {
-    nombre: 'Guardia / Control Salida',
+    nombre: 'Conductor / Control Salida',
     email: 'guardia@demo.local',
-    roles: [{ rol: 'guardia', agenciaId: null }, { rol: 'responsable_agencia', agenciaId: null }],
-  },
-  supervisor: {
-    nombre: 'Supervisor Operativo',
-    email: 'supervisor@demo.local',
-    roles: [{ rol: 'supervisor', agenciaId: null }],
+    roles: [
+      { rol: 'guardia', agenciaId: null },
+      { rol: 'responsable_agencia', agenciaId: null },
+      { rol: 'supervisor', agenciaId: null },
+    ],
   },
   gerente: {
     nombre: 'Gerencia General',
     email: 'gerente@demo.local',
-    roles: [{ rol: 'gerente', agenciaId: null }],
+    roles: [
+      { rol: 'gerente', agenciaId: null },
+      { rol: 'admin', agenciaId: null },
+      { rol: 'supervisor', agenciaId: null },
+    ],
   },
 };
 
 export async function sesionActual(): Promise<SesionUsuario | null> {
   const reqCookies = await cookies();
-  const demoRol = reqCookies.get('demo_rol')?.value || 'operador';
-  const cfg = ROL_CONFIG[demoRol] || ROL_CONFIG.operador || ROL_CONFIG.todos;
+  const demoRol = reqCookies.get('demo_rol')?.value;
+  if (!demoRol) return null;
+
+  const cfg = ROL_CONFIG[demoRol] || ROL_CONFIG.operador;
 
   // Buscar el id real del usuario en la base de datos para no violar FK de creado_por / actor_id
   let realId = 'd4b0b565-c724-11f1-9234-78ac4432fe0b'; // id real de operador en MySQL

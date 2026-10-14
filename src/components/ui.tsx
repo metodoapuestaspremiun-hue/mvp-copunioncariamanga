@@ -8,6 +8,29 @@ export function Error_({ e }: { e: any }) {
   const extra = e.detalle?.mensajes ? '\n- ' + e.detalle.mensajes.join('\n- ') : '';
   return <div className="err">{e.message}{extra}</div>;
 }
+export function BotonAtras({ href, label = 'Volver' }: { href?: string; label?: string }) {
+  const router = typeof window !== 'undefined' ? require('next/navigation').useRouter?.() : null;
+  return (
+    <button
+      type="button"
+      className="btn-volver-atras"
+      onClick={() => {
+        if (href) {
+          window.location.href = href;
+        } else if (typeof window !== 'undefined' && window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/panel';
+        }
+      }}
+      title="Volver a la pantalla anterior"
+    >
+      <span className="btn-volver-icono">←</span>
+      <span className="btn-volver-texto">{label}</span>
+    </button>
+  );
+}
+
 export const Estado = ({ e }: { e: string }) => {
   const c = ['entregado', 'entregada', 'disponible_retiro'].includes(e) ? 'verde' : ['anulado', 'retenido', 'devuelto'].includes(e) ? 'rojo' : ['pendiente_redespacho', 'parcialmente_disponible'].includes(e) ? 'amarillo' : '';
   return <span className={`tag ${c}`}>{ETIQUETA_ESTADO[e] ?? e}</span>;

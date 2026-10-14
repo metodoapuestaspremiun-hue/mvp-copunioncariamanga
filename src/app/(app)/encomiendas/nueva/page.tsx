@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { llamar, dinero } from '@/lib/cliente';
-import { Error_, Etiqueta } from '@/components/ui';
+import { Error_, Etiqueta, BotonAtras } from '@/components/ui';
 import { useUsuario } from '@/components/Sesion';
 
 const vacio = () => ({ kg: '', l: '', a: '', h: '', fotoUrl: '' });
@@ -272,6 +272,7 @@ export default function Nueva() {
 
   return (
     <div>
+      <BotonAtras href="/panel" label="Volver al Panel" />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>Nueva encomienda</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -366,83 +367,150 @@ export default function Nueva() {
 
       <div className="card">
         <h2>Bultos y Registro Fotográfico de Evidencia</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Peso (kg)</th>
-              <th>Largo (cm)</th>
-              <th>Ancho (cm)</th>
-              <th>Alto (cm)</th>
-              <th>Foto de Evidencia</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {bultos.map((b, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                {['kg', 'l', 'a', 'h'].map(k => (
-                  <td key={k}>
-                    <input
-                      style={{ width: 85 }}
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={(b as any)[k]}
-                      onChange={setB(i, k)}
-                      placeholder={k === 'kg' ? 'Ej. 5' : '-'}
-                    />
-                  </td>
-                ))}
-                <td>
-                  {b.fotoUrl ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <a href={b.fotoUrl} target="_blank" rel="noreferrer" title="Ver foto ampliada">
-                        <img
-                          src={b.fotoUrl}
-                          alt="Evidencia"
-                          style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid #cbd5e1' }}
+
+        {/* Vista desktop: tabla compacta */}
+        <div className="tabla-bultos-desktop">
+          <div className="tabla-scroll">
+            <table className="tabla-fija">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Peso (kg)</th>
+                  <th>Largo (cm)</th>
+                  <th>Ancho (cm)</th>
+                  <th>Alto (cm)</th>
+                  <th>Foto de Evidencia</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {bultos.map((b, i) => (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    {['kg', 'l', 'a', 'h'].map(k => (
+                      <td key={k}>
+                        <input
+                          style={{ width: 85 }}
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={(b as any)[k]}
+                          onChange={setB(i, k)}
+                          placeholder={k === 'kg' ? 'Ej. 5' : '-'}
                         />
-                      </a>
-                      <button
-                        type="button"
-                        className="sec"
-                        style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => {
-                          setIndiceBultoFoto(i);
-                          fileInputRef.current?.click();
-                        }}
-                      >
-                        Cambiar
-                      </button>
-                    </div>
-                  ) : (
+                      </td>
+                    ))}
+                    <td>
+                      {b.fotoUrl ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <a href={b.fotoUrl} target="_blank" rel="noreferrer" title="Ver foto ampliada">
+                            <img
+                              src={b.fotoUrl}
+                              alt="Evidencia"
+                              style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                            />
+                          </a>
+                          <button
+                            type="button"
+                            className="sec"
+                            style={{ padding: '4px 10px', fontSize: 12 }}
+                            onClick={() => {
+                              setIndiceBultoFoto(i);
+                              fileInputRef.current?.click();
+                            }}
+                          >
+                            Cambiar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="sec"
+                          style={{ padding: '6px 12px', fontSize: 12.5 }}
+                          disabled={subiendoFoto === i}
+                          onClick={() => {
+                            setIndiceBultoFoto(i);
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          {subiendoFoto === i ? 'Subiendo...' : '📸 Tomar / Subir Foto'}
+                        </button>
+                      )}
+                    </td>
+                    <td>
+                      {bultos.length > 1 && (
+                        <button type="button" className="sec" onClick={() => setBultos(bultos.filter((_, j) => j !== i))}>
+                          Quitar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Vista móvil: cards verticales por bulto */}
+        <div className="tabla-bultos-card">
+          {bultos.map((b, i) => (
+            <div key={i} className="bulto-card-movil">
+              <div className="bulto-num">
+                <span>📦 Bulto #{i + 1}</span>
+                {bultos.length > 1 && (
+                  <button type="button" className="sec" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setBultos(bultos.filter((_, j) => j !== i))}>
+                    Quitar
+                  </button>
+                )}
+              </div>
+              <div className="bulto-inputs">
+                {[{ k: 'kg', label: 'Peso (kg)', ph: 'Ej. 5' }, { k: 'l', label: 'Largo (cm)', ph: '-' }, { k: 'a', label: 'Ancho (cm)', ph: '-' }, { k: 'h', label: 'Alto (cm)', ph: '-' }].map(({ k, label, ph }) => (
+                  <div key={k} className="bulto-campo">
+                    <label>
+                      {label}
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={(b as any)[k]}
+                        onChange={setB(i, k)}
+                        placeholder={ph}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div>
+                {b.fotoUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <a href={b.fotoUrl} target="_blank" rel="noreferrer">
+                      <img src={b.fotoUrl} alt="Evidencia" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    </a>
                     <button
                       type="button"
                       className="sec"
-                      style={{ padding: '6px 12px', fontSize: 12.5 }}
-                      disabled={subiendoFoto === i}
-                      onClick={() => {
-                        setIndiceBultoFoto(i);
-                        fileInputRef.current?.click();
-                      }}
+                      style={{ fontSize: 12.5 }}
+                      onClick={() => { setIndiceBultoFoto(i); fileInputRef.current?.click(); }}
                     >
-                      {subiendoFoto === i ? 'Subiendo...' : '📸 Tomar / Subir Foto'}
+                      Cambiar foto
                     </button>
-                  )}
-                </td>
-                <td>
-                  {bultos.length > 1 && (
-                    <button type="button" className="sec" onClick={() => setBultos(bultos.filter((_, j) => j !== i))}>
-                      Quitar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="sec"
+                    disabled={subiendoFoto === i}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => { setIndiceBultoFoto(i); fileInputRef.current?.click(); }}
+                  >
+                    {subiendoFoto === i ? 'Subiendo...' : '📸 Tomar / Subir Foto de Evidencia'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <p style={{ marginTop: 12 }}>
           <button type="button" className="sec" onClick={() => setBultos([...bultos, vacio()])}>
             + Agregar bulto
@@ -504,10 +572,11 @@ export default function Nueva() {
 
       <div style={{ marginTop: 20 }}>
         <button
+          className="btn-accion-principal"
           onClick={guardar}
           disabled={ocupado || !f.remitenteNombre || !f.destNombre || bultos.some(b => !b.kg)}
         >
-          {ocupado ? 'Registrando...' : 'Registrar encomienda e imprimir etiquetas con QR'}
+          {ocupado ? 'Registrando...' : '✅ Registrar encomienda e imprimir etiquetas con QR'}
         </button>
       </div>
     </div>

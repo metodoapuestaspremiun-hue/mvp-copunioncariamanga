@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { SesionCtx } from '@/components/Sesion';
 import { puede, type SesionUsuario, type Rol } from '@/shared/permisos';
 
@@ -76,13 +76,11 @@ const ROLES: RolInfo[] = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [rolActualId, setRolActualId] = useState<string>('operador');
-  const [sidebarAbierto, setSidebarAbierto] = useState<boolean>(false);
   const [menuMovilAbierto, setMenuMovilAbierto] = useState<boolean>(false);
 
-  // Inicializar rol y estado del sidebar
   useEffect(() => {
-    // Cargar rol desde localStorage o cookie
     const rolGuardado = localStorage.getItem('rol_usuario');
     const cookiesArr = document.cookie.split('; ');
     const rolCookie = cookiesArr.find(row => row.startsWith('demo_rol='))?.split('=')[1];
@@ -90,34 +88,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (rolFinal && ROLES.some(r => r.id === rolFinal)) {
       setRolActualId(rolFinal);
     }
-    const guardadoSidebar = localStorage.getItem('sidebar_abierto');
-    // En escritorio por defecto abierto si no se ha guardado, en móvil cerrado
-    if (guardadoSidebar !== null) {
-      setSidebarAbierto(guardadoSidebar === 'true');
-    } else if (typeof window !== 'undefined' && window.innerWidth > 900) {
-      setSidebarAbierto(true);
-    }
   }, []);
 
   // Cerrar menú móvil al cambiar de ruta
   useEffect(() => {
     setMenuMovilAbierto(false);
   }, [pathname]);
-
-  const toggleSidebar = () => {
-    setSidebarAbierto(prev => {
-      const nuevo = !prev;
-      localStorage.setItem('sidebar_abierto', String(nuevo));
-      return nuevo;
-    });
-  };
-
-  const cambiarRol = (nuevoRolId: string) => {
-    setRolActualId(nuevoRolId);
-    localStorage.setItem('rol_usuario', nuevoRolId);
-    document.cookie = `demo_rol=${nuevoRolId}; path=/; max-age=86400; SameSite=Lax`;
-    window.location.reload();
-  };
 
   const configRol = ROLES.find(r => r.id === rolActualId) || ROLES[0];
 
@@ -135,72 +111,119 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SesionCtx.Provider value={sesionActiva}>
       <div className="demo-wrapper">
-        {/* BACKDROP PARA SIDEBAR DE PERFILES */}
-        {sidebarAbierto && (
-          <div 
-            className="demo-sidebar-backdrop noprint" 
-            onClick={toggleSidebar}
-            aria-label="Cerrar menú de perfiles"
+        {/* BACKDROP CON DESENFOQUE PARA EL DRAWER LATERAL */}
+        {menuMovilAbierto && (
+          <div
+            className="glass-drawer-backdrop noprint"
+            onClick={() => setMenuMovilAbierto(false)}
+            aria-label="Cerrar menú lateral"
           />
         )}
 
-        {/* SIDEBAR LATERAL PLEGABLE (PERFILES) */}
-        <aside className={`demo-sidebar noprint ${sidebarAbierto ? 'abierto' : 'cerrado'}`}>
-          <div className="demo-sidebar-header">
-            <div>
-              <p className="demo-sidebar-title">Perfiles de Usuario</p>
-              <h3 className="demo-sidebar-subtitle">Cambiar Perfil</h3>
+        {/* DRAWER LATERAL IZQUIERDO ULTRA GLASS */}
+        <aside className={`glass-drawer-left noprint ${menuMovilAbierto ? 'abierto' : ''}`}>
+          <div className="glass-drawer-header">
+            <div className="glass-drawer-brand">
+              <span style={{ fontSize: '24px' }}>📦</span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>Cariamanga</h3>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Panel Operativo</span>
+              </div>
             </div>
             <button
               type="button"
-              onClick={toggleSidebar}
-              className="btn-icono-sidebar"
-              title="Ocultar barra lateral"
+              onClick={() => setMenuMovilAbierto(false)}
+              className="btn-cerrar-drawer"
+              title="Cerrar menú"
             >
               ✕
             </button>
           </div>
 
-          <div className="demo-roles-list">
-            {ROLES.map(rol => {
-              const estaActivo = rol.id === rolActualId;
+          {/* Información del Perfil Conectado en el Drawer */}
+          <div className="glass-drawer-user-card">
+            <span style={{ fontSize: '22px' }}>{configRol.icono}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {configRol.titulo}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                {configRol.subtitulo}
+              </div>
+            </div>
+          </div>
+
+          {/* Enlaces de navegación vertical Glassmorphism */}
+          <div className="glass-drawer-nav">
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b', padding: '8px 12px 4px' }}>
+              Módulos Disponibles
+            </div>
+            {enlacesDisponibles.map(link => {
+              const activo = pathname === link.href || (link.href !== '/panel' && pathname.startsWith(link.href));
               return (
-                <button
-                  key={rol.id}
-                  type="button"
-                  onClick={() => {
-                    cambiarRol(rol.id);
-                    setSidebarAbierto(false);
-                  }}
-                  className={`demo-role-btn ${estaActivo ? 'active' : ''}`}
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`glass-nav-item ${activo ? 'activo' : ''}`}
+                  onClick={() => setMenuMovilAbierto(false)}
                 >
-                  <span className="demo-role-name">
-                    <span>{rol.icono} {rol.titulo}</span>
-                    {estaActivo && <span className="demo-role-badge">Activo</span>}
-                  </span>
-                  <span className="demo-role-desc">{rol.subtitulo}</span>
-                </button>
+                  <span className="glass-nav-bullet" />
+                  <span style={{ flex: 1 }}>{link.label}</span>
+                  {activo && <span className="glass-nav-indicator">●</span>}
+                </Link>
               );
             })}
           </div>
 
-          <div style={{ padding: '14px 16px', borderTop: '1px solid #1e293b', fontSize: '12px', color: '#64748b' }}>
-            Cooperativa Unión Cariamanga
+          {/* Pie del Drawer con botón de Salir */}
+          <div className="glass-drawer-footer">
+            <button
+              type="button"
+              onClick={() => {
+                document.cookie = 'demo_rol=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                localStorage.removeItem('rol_usuario');
+                window.location.href = '/login';
+              }}
+              className="glass-btn-logout"
+            >
+              <span>🚪</span>
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </aside>
 
-        {/* CONTENIDO PRINCIPAL: Header superior + Páginas */}
-        <div className="demo-content-area">
+        {/* CONTENIDO PRINCIPAL: Header superior Glass + Páginas */}
+        <div className="demo-content-area" style={{ width: '100%', margin: 0 }}>
           <nav className="top-header noprint">
-            {/* Botón para cambiar de Rol */}
+            {/* Botón Volver Atrás siempre visible si no está en la raíz del panel */}
+            {pathname !== '/panel' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/panel');
+                  }
+                }}
+                className="btn-header-atras"
+                aria-label="Volver a la pantalla anterior"
+                title="Volver atrás"
+              >
+                <span style={{ fontSize: '16px', lineHeight: 1 }}>←</span>
+                <span className="btn-header-atras-texto">Atrás</span>
+              </button>
+            )}
+
+            {/* Botón hamburguesa que abre el drawer lateral izquierdo */}
             <button
               type="button"
-              onClick={toggleSidebar}
-              className="btn-abrir-sidebar"
-              title="Cambiar perfil"
+              onClick={() => setMenuMovilAbierto(true)}
+              className="btn-hamburguesa-movil"
+              aria-label="Abrir menú de navegación"
+              title="Abrir menú"
             >
-              <span>👥</span>
-              <span className="btn-perfiles-texto">Perfiles</span>
+              ☰
             </button>
 
             <span className="brand">
@@ -208,44 +231,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="brand-texto">Cariamanga</span>
             </span>
 
-            {/* Enlaces de navegación: en desktop están inline en el header, en móvil se muestran abajo */}
-            <div className={`top-header-links ${menuMovilAbierto ? 'movil-visible' : ''}`}>
-              {enlacesDisponibles.map(link => {
-                const activo = pathname === link.href || (link.href !== '/panel' && pathname.startsWith(link.href));
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={activo ? 'activo' : ''}
-                    onClick={() => setMenuMovilAbierto(false)}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-
             <span className="header-spacer" />
 
-            {/* Chip del rol actual */}
-            <div 
-              className="role-indicator-chip" 
-              onClick={toggleSidebar} 
-              style={{ cursor: 'pointer' }} 
-              title="Toca para cambiar de rol"
-            >
+            {/* Chip del rol autenticado */}
+            <div className="role-indicator-chip" title="Perfil activo de la sesión">
               <b>{configRol.icono} <span className="role-chip-name">{configRol.titulo}</span></b>
             </div>
 
-            {/* Botón hamburguesa solo para pantallas móviles */}
+            {/* Botón Salir / Cerrar Sesión */}
             <button
               type="button"
-              onClick={() => setMenuMovilAbierto(prev => !prev)}
-              className="btn-hamburguesa-movil"
-              aria-label="Abrir menú de navegación"
-              title="Menú de secciones"
+              onClick={() => {
+                document.cookie = 'demo_rol=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                localStorage.removeItem('rol_usuario');
+                window.location.href = '/login';
+              }}
+              className="btn-header-salir"
+              title="Cerrar sesión e ir a login"
             >
-              {menuMovilAbierto ? '✕' : '☰'}
+              <span>🚪</span>
+              <span className="btn-perfiles-texto">Salir</span>
             </button>
           </nav>
 
