@@ -12,7 +12,7 @@ export const POST = api({ permiso: 'encomienda:crear', schema: z.object({
   origenId: z.string(), destinoId: z.string(),
   remitenteNombre: z.string().min(1).max(100), remitenteTel: z.string().max(20).nullish(),
   destNombre: z.string().min(1).max(100), destTel: z.string().max(20).nullish(),
-  contenido: z.string().max(255).nullish(), valorDeclaradoCent: z.number().int().nonnegative().nullish(), refExterna: z.string().max(60).nullish(),
+  contenido: z.string().max(255).nullish(), valorDeclaradoCent: z.number().int().nonnegative().nullish(), refExterna: z.string().max(500).nullish(),
   bultos: z.array(z.object({ pesoG: z.number().int().positive(), largoMm: z.number().int().positive().nullish(), anchoMm: z.number().int().positive().nullish(), altoMm: z.number().int().positive().nullish() })).min(1).max(50),
   manual: z.object({ valorCent: z.number().int().nonnegative(), motivo: z.string() }).nullish(),
 }) }, async ({ user, body }) => {

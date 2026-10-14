@@ -92,6 +92,7 @@ const ROLES: RolInfo[] = [
     roles: [{ rol: 'gerente', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel Ejecutivo' },
+      { href: '/tarifas', label: 'Tarifas y Precios' },
       { href: '/encomiendas', label: 'Historial Encomiendas' },
       { href: '/viajes', label: 'Historial Viajes' },
       { href: '/incidencias', label: 'Auditoría Incidencias' },
@@ -107,10 +108,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Inicializar rol y estado del sidebar
   useEffect(() => {
+    // Cargar rol desde localStorage o cookie
+    const rolGuardado = localStorage.getItem('rol_usuario');
     const cookiesArr = document.cookie.split('; ');
     const rolCookie = cookiesArr.find(row => row.startsWith('demo_rol='))?.split('=')[1];
-    if (rolCookie && ROLES.some(r => r.id === rolCookie)) {
-      setRolActualId(rolCookie);
+    const rolFinal = rolGuardado || rolCookie;
+    if (rolFinal && ROLES.some(r => r.id === rolFinal)) {
+      setRolActualId(rolFinal);
     }
     const guardadoSidebar = localStorage.getItem('sidebar_abierto');
     if (guardadoSidebar !== null) {
@@ -128,6 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const cambiarRol = (nuevoRolId: string) => {
     setRolActualId(nuevoRolId);
+    localStorage.setItem('rol_usuario', nuevoRolId);
     document.cookie = `demo_rol=${nuevoRolId}; path=/; max-age=86400; SameSite=Lax`;
     window.location.reload();
   };
@@ -137,7 +142,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sesionActiva: SesionUsuario = {
     id: `mvp-${configRol.id}`,
     nombre: configRol.titulo,
-    email: `${configRol.id}@demo.local`,
+    email: `${configRol.id}@cariamanga.com`,
     roles: configRol.roles,
   };
 

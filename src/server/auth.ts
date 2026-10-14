@@ -91,11 +91,25 @@ const ROL_CONFIG: Record<string, { nombre: string; email: string; roles: { rol: 
 
 export async function sesionActual(): Promise<SesionUsuario | null> {
   const reqCookies = await cookies();
-  const demoRol = reqCookies.get('demo_rol')?.value || 'todos';
-  const cfg = ROL_CONFIG[demoRol] || ROL_CONFIG.todos;
+  const demoRol = reqCookies.get('demo_rol')?.value || 'operador';
+  const cfg = ROL_CONFIG[demoRol] || ROL_CONFIG.operador || ROL_CONFIG.todos;
+
+  // Buscar el id real del usuario en la base de datos para no violar FK de creado_por / actor_id
+  let realId = 'd4b0b565-c724-11f1-9234-78ac4432fe0b'; // id real de operador en MySQL
+  try {
+    const userRow = await q1<any>(pool, 'SELECT id FROM usuario WHERE email=? LIMIT 1', [cfg.email]);
+    if (userRow?.id) {
+      realId = userRow.id;
+    } else {
+      const primerUser = await q1<any>(pool, 'SELECT id FROM usuario LIMIT 1');
+      if (primerUser?.id) realId = primerUser.id;
+    }
+  } catch {
+    // Si la BD no responde, mantener fallback
+  }
 
   return {
-    id: `mvp-${demoRol}`,
+    id: realId,
     nombre: cfg.nombre,
     email: cfg.email,
     roles: cfg.roles,

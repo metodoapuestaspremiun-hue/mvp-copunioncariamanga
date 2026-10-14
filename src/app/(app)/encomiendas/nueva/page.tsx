@@ -23,12 +23,19 @@ export default function Nueva() {
   const [indiceBultoFoto, setIndiceBultoFoto] = useState<number>(0);
 
   useEffect(() => {
-    llamar('/api/catalogos').then((c: any) => {
-      setCat(c);
-      const mia = u.roles.find(r => r.agenciaId)?.agenciaId ?? c.agencias[0]?.id;
-      setF((x: any) => ({ ...x, origenId: mia, destinoId: c.agencias.find((a: any) => a.id !== mia)?.id ?? '' }));
-    });
-  }, []);
+    llamar('/api/catalogos')
+      .then((c: any) => {
+        setCat(c);
+        const agencias = c?.agencias || [];
+        const mia = u?.roles?.find(r => r.agenciaId)?.agenciaId ?? agencias[0]?.id ?? '';
+        const otra = agencias.find((a: any) => a.id !== mia)?.id ?? agencias[1]?.id ?? mia;
+        setF((x: any) => ({ ...x, origenId: mia, destinoId: otra }));
+      })
+      .catch((err) => {
+        console.error('Error cargando catálogos:', err);
+        setErr(err);
+      });
+  }, [u]);
 
   const cuerpo = () => ({
     origenId: f.origenId,
@@ -215,7 +222,7 @@ export default function Nueva() {
       </div>
 
       <div className="card">
-        <h2>Bultos y Evidencia Fotográfica (BunnyCDN)</h2>
+        <h2>Bultos y Registro Fotográfico de Evidencia</h2>
         <table>
           <thead>
             <tr>
@@ -248,7 +255,7 @@ export default function Nueva() {
                 <td>
                   {b.fotoUrl ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <a href={b.fotoUrl} target="_blank" rel="noreferrer" title="Ver foto en BunnyCDN">
+                      <a href={b.fotoUrl} target="_blank" rel="noreferrer" title="Ver foto ampliada">
                         <img
                           src={b.fotoUrl}
                           alt="Evidencia"

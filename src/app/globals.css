@@ -316,9 +316,6 @@ tr:hover td {
 }
 
 /* Layout de Demostración con Simulador de Roles */
-.demo-wrapper { display: flex; min-height: 100vh; }
-
-/* Layout de Demostración con Simulador de Roles */
 .demo-wrapper { display: flex; min-height: 100vh; position: relative; }
 
 .demo-sidebar {
@@ -329,8 +326,12 @@ tr:hover td {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #1e293b;
-  z-index: 10;
-  transition: all 0.25s ease-in-out;
+  z-index: 100;
+  transition: width 0.25s ease-in-out, opacity 0.2s ease-in-out;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .demo-sidebar.cerrado {
