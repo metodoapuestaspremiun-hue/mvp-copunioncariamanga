@@ -104,7 +104,8 @@ const ROLES: RolInfo[] = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [rolActualId, setRolActualId] = useState<string>('operador');
-  const [sidebarAbierto, setSidebarAbierto] = useState<boolean>(true);
+  const [sidebarAbierto, setSidebarAbierto] = useState<boolean>(false);
+  const [menuMovilAbierto, setMenuMovilAbierto] = useState<boolean>(false);
 
   // Inicializar rol y estado del sidebar
   useEffect(() => {
@@ -117,10 +118,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setRolActualId(rolFinal);
     }
     const guardadoSidebar = localStorage.getItem('sidebar_abierto');
+    // En escritorio por defecto abierto si no se ha guardado, en móvil cerrado
     if (guardadoSidebar !== null) {
       setSidebarAbierto(guardadoSidebar === 'true');
+    } else if (typeof window !== 'undefined' && window.innerWidth > 900) {
+      setSidebarAbierto(true);
     }
   }, []);
+
+  // Cerrar menú móvil al cambiar de ruta
+  useEffect(() => {
+    setMenuMovilAbierto(false);
+  }, [pathname]);
 
   const toggleSidebar = () => {
     setSidebarAbierto(prev => {
@@ -146,10 +155,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     roles: configRol.roles,
   };
 
+  const enlacesDisponibles = configRol.rutasPermitidas.filter(
+    link => !link.permiso || puede(sesionActiva, link.permiso)
+  );
+
   return (
     <SesionCtx.Provider value={sesionActiva}>
       <div className="demo-wrapper">
-        {/* SIDEBAR LATERAL PLEGABLE */}
+        {/* BACKDROP PARA SIDEBAR DE PERFILES */}
+        {sidebarAbierto && (
+          <div 
+            className="demo-sidebar-backdrop noprint" 
+            onClick={toggleSidebar}
+            aria-label="Cerrar menú de perfiles"
+          />
+        )}
+
+        {/* SIDEBAR LATERAL PLEGABLE (PERFILES) */}
         <aside className={`demo-sidebar noprint ${sidebarAbierto ? 'abierto' : 'cerrado'}`}>
           <div className="demo-sidebar-header">
             <div>
@@ -173,7 +195,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <button
                   key={rol.id}
                   type="button"
-                  onClick={() => cambiarRol(rol.id)}
+                  onClick={() => {
+                    cambiarRol(rol.id);
+                    setSidebarAbierto(false);
+                  }}
                   className={`demo-role-btn ${estaActivo ? 'active' : ''}`}
                 >
                   <span className="demo-role-name">
@@ -194,45 +219,61 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* CONTENIDO PRINCIPAL: Header superior + Páginas */}
         <div className="demo-content-area">
           <nav className="top-header noprint">
-            {/* Botón para abrir el sidebar si está cerrado */}
-            {!sidebarAbierto && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="btn-abrir-sidebar"
-                title="Cambiar perfil"
-              >
-                <span>☰</span>
-                <span>Perfiles</span>
-              </button>
-            )}
+            {/* Botón para cambiar de Rol */}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="btn-abrir-sidebar"
+              title="Cambiar perfil"
+            >
+              <span>👥</span>
+              <span className="btn-perfiles-texto">Perfiles</span>
+            </button>
 
             <span className="brand">
               <span>📦</span>
-              <span>Cariamanga Encomiendas</span>
+              <span className="brand-texto">Cariamanga</span>
             </span>
 
-            {configRol.rutasPermitidas
-              .filter(link => !link.permiso || puede(sesionActiva, link.permiso))
-              .map(link => {
+            {/* Enlaces de navegación: en desktop están inline en el header, en móvil se muestran abajo */}
+            <div className={`top-header-links ${menuMovilAbierto ? 'movil-visible' : ''}`}>
+              {enlacesDisponibles.map(link => {
                 const activo = pathname === link.href || (link.href !== '/panel' && pathname.startsWith(link.href));
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={activo ? 'activo' : ''}
+                    onClick={() => setMenuMovilAbierto(false)}
                   >
                     {link.label}
                   </Link>
                 );
               })}
-
-            <span style={{ flex: 1 }} />
-
-            <div className="role-indicator-chip" onClick={toggleSidebar} style={{ cursor: 'pointer' }} title="Clic para cambiar de rol">
-              <span>Perfil actual:</span>
-              <b>{configRol.icono} {configRol.titulo}</b>
             </div>
+
+            <span className="header-spacer" />
+
+            {/* Chip del rol actual */}
+            <div 
+              className="role-indicator-chip" 
+              onClick={toggleSidebar} 
+              style={{ cursor: 'pointer' }} 
+              title="Toca para cambiar de rol"
+            >
+              <b>{configRol.icono} <span className="role-chip-name">{configRol.titulo}</span></b>
+            </div>
+
+            {/* Botón hamburguesa solo para pantallas móviles */}
+            <button
+              type="button"
+              onClick={() => setMenuMovilAbierto(prev => !prev)}
+              className="btn-hamburguesa-movil"
+              aria-label="Abrir menú de navegación"
+              title="Menú de secciones"
+            >
+              {menuMovilAbierto ? '✕' : '☰'}
+            </button>
           </nav>
 
           <main>{children}</main>

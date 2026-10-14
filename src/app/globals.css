@@ -476,15 +476,49 @@ nav.top-header {
   background: var(--azul);
   color: #ffffff;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 12px 24px;
+  flex-direction: row;
   align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 50;
   box-shadow: var(--sombra);
 }
+
+.header-spacer {
+  flex: 1;
+}
+
+.top-header-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.btn-hamburguesa-movil {
+  display: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radio-sm);
+  padding: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: all 0.15s;
+}
+.btn-hamburguesa-movil:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: none;
+}
+
 nav.top-header a {
   color: #cbd5e1;
   text-decoration: none;
@@ -493,6 +527,7 @@ nav.top-header a {
   font-weight: 500;
   font-size: 13.5px;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 nav.top-header a:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -512,21 +547,201 @@ nav.top-header .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-right: 12px;
+  margin-right: 8px;
+  white-space: nowrap;
 }
 .role-indicator-chip {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radio-pill);
-  padding: 5px 14px;
+  padding: 6px 14px;
   font-size: 12.5px;
   color: #ffffff;
   display: flex;
   align-items: center;
   gap: 6px;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .role-indicator-chip:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.demo-sidebar-backdrop {
+  display: none;
+}
+
+/* ========================================================
+   RESPONSIVE DESIGN Y OPTIMIZACIÓN MÓVIL
+   ======================================================== */
+
+/* Contenedor con scroll horizontal para tablas solo si realmente desborda */
+.card table {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  /* Sidebar de perfiles como drawer */
+  .demo-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.4);
+    transform: translateX(-100%);
+    width: 290px;
+    max-width: 85vw;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .demo-sidebar.abierto {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  .demo-sidebar.cerrado {
+    transform: translateX(-100%);
+    width: 290px;
+  }
+
+  .demo-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  nav.top-header {
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .btn-hamburguesa-movil {
+    display: flex;
+  }
+
+  /* Menú desplegable móvil limpio (vertical, sin scroll horizontal) */
+  .top-header-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    order: 10;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    gap: 4px;
+  }
+
+  .top-header-links.movil-visible {
+    display: flex;
+    animation: slideDown 0.2s ease-out forwards;
+  }
+
+  .top-header-links a {
+    font-size: 13.5px;
+    padding: 10px 14px;
+    border-radius: var(--radio-sm);
+    background: rgba(255, 255, 255, 0.05);
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  .top-header-links a.activo {
+    background: #ffffff;
+    color: var(--azul);
+    font-weight: 700;
+  }
+
+  .card table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card table th, .card table td {
+    white-space: nowrap;
+  }
+
+  .role-indicator-chip {
+    padding: 4px 8px;
+    font-size: 11px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Padding del contenido principal */
+  main {
+    padding: 14px 10px 36px;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: 19px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 14.5px;
+  }
+
+  .card {
+    padding: 14px 12px;
+    margin-bottom: 12px;
+    border-radius: var(--radio-sm);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  label {
+    min-width: 100%;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    font-size: 15px; /* Evita zoom automático en Safari */
+  }
+
+  button, .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 16px;
+  }
+
+  /* Botones en tablas */
+  td button, td .btn {
+    width: auto !important;
+    padding: 5px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-texto {
+    display: none;
+  }
+  .btn-perfiles-texto {
+    display: none;
+  }
+  .btn-abrir-sidebar {
+    padding: 6px 10px;
+  }
+}
