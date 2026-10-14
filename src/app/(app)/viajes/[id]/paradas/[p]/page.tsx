@@ -24,6 +24,20 @@ export default function Parada() {
       if (typeof navigator.vibrate === 'function') navigator.vibrate(r.resultado === 'ok' ? 80 : [200, 80, 200]);
     } catch (e) { setErr(e); setRes(null); } finally { setOcupado(false); await cargar(); }
   };
+  if (err && (err.codigo === 'SIN_MANIFIESTO' || (typeof err === 'string' && err.includes('SIN_MANIFIESTO')))) {
+    return (
+      <div>
+        <h1>Parada {orden}</h1>
+        <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+          <h2 style={{ margin: '0 0 8px' }}>El manifiesto aún no está cerrado</h2>
+          <p className="muted">El Operador de Ventanilla debe cerrar el manifiesto antes de que puedas operar esta parada.</p>
+          <p className="muted">Una vez cerrado, aquí verás los paquetes que suben, bajan y continúan en el bus.</p>
+          <Link href={'/viajes/' + id} className="btn sec" style={{ marginTop: 12, display: 'inline-block' }}>← Volver al viaje</Link>
+        </div>
+      </div>
+    );
+  }
   if (!d) return <div><Error_ e={err} />Cargando...</div>;
   const ev = d.evaluacion; const aut = d.autorizacion;
   const lista = (rol: string) => d.bultos.filter((b: any) => b.rol === rol);
@@ -33,10 +47,20 @@ export default function Parada() {
   const continuan = lista('continua').length;
   return (
     <div>
-      <h1>Parada {orden}: {d.parada.nombre} <span className="muted">· manifiesto v{d.version} · <Link href={'/viajes/' + id}>volver al viaje</Link></span></h1>
-      {!enParada && <div className="err">El bus esta en la parada {d.viaje.parada_actual}. {orden < d.viaje.parada_actual ? 'Esta parada ya salio.' : 'Aun no llega a esta parada.'}</div>}
+      <h1>📍 Parada {orden}: {d.parada.nombre} <span className="muted">· manifiesto v{d.version} · <Link href={'/viajes/' + id}>← volver al viaje</Link></span></h1>
+      {!enParada && (
+        <div className={orden < d.viaje.parada_actual ? 'err' : 'card'} style={orden >= d.viaje.parada_actual ? { background: '#1e3a5f', border: '1px solid #2563eb' } : {}}>
+          {orden < d.viaje.parada_actual
+            ? `⚠️ Esta parada ya salió. El bus está ahora en la parada ${d.viaje.parada_actual}.`
+            : `⏳ El bus aún no llegó aquí. Está en la parada ${d.viaje.parada_actual}. Cuando llegue podrás escanear paquetes.`}
+        </div>
+      )}
       <Error_ e={err} />{ok && <div className="okmsg">{ok}</div>}
-      <div className="grid"><Col titulo="Bajan aqui" rol="baja" /><Col titulo="Suben aqui" rol="sube" /><Col titulo="Continuan a bordo" rol="continua" /></div>
+      <div className="grid">
+        <Col titulo="⬇️ Bajan aquí" rol="baja" />
+        <Col titulo="⬆️ Suben aquí" rol="sube" />
+        <Col titulo="➡️ Continúan a bordo" rol="continua" />
+      </div>
 
       {puede(u, 'escaneo:operar') && enParada && <div className="card"><h2>Escaneo</h2>
         <div className="row"><label>Operacion<select value={modo} onChange={e => setModo(e.target.value as any)}><option value="carga">Carga (suben)</option><option value="descarga">Descarga (bajan)</option></select></label></div>

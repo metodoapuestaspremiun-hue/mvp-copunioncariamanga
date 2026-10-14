@@ -173,6 +173,19 @@ export async function cerrarViaje(actorId: string, viajeId: string) {
     if (abordo.length) throw new ErrorNegocio('VIAJE_CON_BULTOS_ABORDO', `Aun hay ${abordo.length} bulto(s) sin descargar`, abordo.map(a => a.codigo_legible));
     await ex(c, "UPDATE viaje SET estado='cerrado' WHERE id=?", [viajeId]);
     await registrarEvento(c, { tipo: 'viaje_cerrado', viajeId, actorId });
+
+    // Regenerar el siguiente turno para la misma ruta (Ruta Fija Recurrente)
+    const viajeActual = await q1<any>(c, 'SELECT ruta_id, vehiculo, conductor FROM viaje WHERE id=?', [viajeId]);
+    if (viajeActual) {
+      const nuevoViajeId = nuevoId();
+      // Fecha para el siguiente día o el mismo día según corresponda
+      const fechaManana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      await ex(c, 'INSERT INTO viaje(id, ruta_id, fecha, vehiculo, conductor, creado_por) VALUES (?,?,?,?,?,?)',
+        [nuevoViajeId, viajeActual.ruta_id, fechaManana, viajeActual.vehiculo, viajeActual.conductor, actorId]);
+      await ex(c, 'INSERT INTO manifiesto(id, viaje_id, version) VALUES (?,?,1)', [nuevoId(), nuevoViajeId]);
+      await registrarEvento(c, { tipo: 'viaje_creado', viajeId: nuevoViajeId, actorId, payload: { regenerado_de: viajeId } });
+    }
+
     return { ok: true };
   });
 }

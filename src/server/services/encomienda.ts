@@ -12,6 +12,7 @@ export interface EncomiendaIn {
   destNombre: string; destTel?: string | null;
   contenido?: string | null; valorDeclaradoCent?: number | null; refExterna?: string | null;
   bultos: BultoIn[];
+  viajeId?: string | null;
   /** Si no hay regla de tarifa: cotizacion manual con responsable y motivo. */
   manual?: { valorCent: number; motivo: string } | null;
 }
@@ -44,13 +45,39 @@ export async function crearEncomienda(actorId: string, i: EncomiendaIn) {
     const bultos: { id: string; numero: number; qrToken: string; codigoLegible: string; pesoG: number }[] = [];
     for (let n = 0; n < i.bultos.length; n++) {
       const b = i.bultos[n]; const id = nuevoId(); const qr = nuevoQrToken(); const leg = nuevoCodigoLegible();
+      const tramoId = nuevoId();
       await ex(c,
         `INSERT INTO bulto(id,encomienda_id,numero,qr_token,codigo_legible,peso_g,largo_mm,ancho_mm,alto_mm,agencia_custodia_id)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [id, encId, n + 1, qr, leg, b.pesoG, b.largoMm ?? null, b.anchoMm ?? null, b.altoMm ?? null, i.origenId]);
-      await ex(c, 'INSERT INTO bulto_tramo(id,bulto_id,orden,desde_agencia_id,hasta_agencia_id) VALUES (?,?,1,?,?)', [nuevoId(), id, i.origenId, i.destinoId]);
+      await ex(c, 'INSERT INTO bulto_tramo(id,bulto_id,orden,desde_agencia_id,hasta_agencia_id) VALUES (?,?,1,?,?)', [tramoId, id, i.origenId, i.destinoId]);
       await registrarEvento(c, { tipo: 'bulto_registrado', bultoId: id, actorId, payload: { encomienda: codigo, numero: n + 1 } });
       bultos.push({ id, numero: n + 1, qrToken: qr, codigoLegible: leg, pesoG: b.pesoG });
+
+      // ASIGNACIÓN AUTOMÁTICA AL VIAJE SI FUE SELECCIONADO
+      if (i.viajeId) {
+        try {
+          const v = await q1<any>(c, 'SELECT * FROM viaje WHERE id=?', [i.viajeId]);
+          const m = await q1<any>(c, 'SELECT id, version FROM manifiesto WHERE viaje_id=? ORDER BY version DESC LIMIT 1', [i.viajeId]);
+          if (v && m) {
+            const paradas = await q<any>(c, 'SELECT orden, agencia_id FROM parada WHERE ruta_id=? ORDER BY orden', [v.ruta_id]);
+            const pSube = paradas.find(p => p.agencia_id === i.origenId);
+            const pBaja = paradas.find(p => p.agencia_id === i.destinoId);
+            if (pSube && pBaja && pSube.orden < pBaja.orden) {
+              await ex(c,
+                'INSERT INTO manifiesto_item(manifiesto_id,bulto_id,bulto_tramo_id,sube_orden,baja_orden) VALUES (?,?,?,?,?)',
+                [m.id, id, tramoId, pSube.orden, pBaja.orden]
+              );
+              await registrarEvento(c, {
+                tipo: 'agregado_a_manifiesto', bultoId: id, viajeId: i.viajeId, actorId,
+                payload: { sube: pSube.orden, baja: pBaja.orden, version: m.version, auto: true }
+              });
+            }
+          }
+        } catch (errManifiesto) {
+          console.warn('Advertencia asociando paquete a manifiesto automatico:', errManifiesto);
+        }
+      }
     }
     const valor = cot.resultado.sinRegla ? i.manual!.valorCent : cot.resultado.valorCent;
     await ex(c,
@@ -96,6 +123,18 @@ export async function catalogos(db: Db) {
   const rutas = await q<any>(db, 'SELECT id,nombre FROM ruta ORDER BY nombre');
   const paradas = await q<any>(db, 'SELECT id,ruta_id,orden,nombre,agencia_id FROM parada ORDER BY ruta_id,orden');
   const tv = await q1<any>(db, 'SELECT etiqueta FROM tarifa_version ORDER BY vigente_desde DESC LIMIT 1');
-  return { agencias, rutas: rutas.map(r => ({ ...r, paradas: paradas.filter(p => p.ruta_id === r.id) })), etiquetaTarifa: tv?.etiqueta ?? null };
+  const viajes = await q<any>(db,
+    `SELECT v.id, v.vehiculo, v.conductor, v.estado, v.parada_actual, v.ruta_id, r.nombre as ruta_nombre
+       FROM viaje v
+       JOIN ruta r ON r.id = v.ruta_id
+      WHERE v.estado <> 'cerrado'
+      ORDER BY v.fecha DESC, v.vehiculo ASC`
+  );
+  return {
+    agencias,
+    rutas: rutas.map(r => ({ ...r, paradas: paradas.filter(p => p.ruta_id === r.id) })),
+    viajes,
+    etiquetaTarifa: tv?.etiqueta ?? null
+  };
 }
 void param;

@@ -14,14 +14,14 @@ interface RolInfo {
   rutasPermitidas: { href: string; label: string; permiso?: string }[];
 }
 
-// Roles de la cooperativa
+// Roles simplificados de la cooperativa
 const ROLES: RolInfo[] = [
   {
     id: 'operador',
     titulo: 'Operador Ventanilla',
-    subtitulo: 'Crea encomiendas, recibe y entrega',
+    subtitulo: 'Crea encomiendas, asigna viaje y entrega',
     icono: '🏢',
-    roles: [{ rol: 'operador', agenciaId: null }],
+    roles: [{ rol: 'operador', agenciaId: null }, { rol: 'despachador', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel' },
       { href: '/encomiendas/nueva', label: '+ Nueva encomienda', permiso: 'encomienda:crear' },
@@ -34,36 +34,23 @@ const ROLES: RolInfo[] = [
     ],
   },
   {
-    id: 'despachador',
-    titulo: 'Despachador Andén',
-    subtitulo: 'Arma viajes y manifiestos de carga',
-    icono: '📋',
-    roles: [{ rol: 'despachador', agenciaId: null }],
-    rutasPermitidas: [
-      { href: '/panel', label: 'Panel' },
-      { href: '/viajes', label: 'Viajes y Manifiestos' },
-      { href: '/redespachos', label: 'Redespachos' },
-      { href: '/incidencias', label: 'Incidencias' },
-    ],
-  },
-  {
     id: 'ayudante',
     titulo: 'Ayudante de Bus',
-    subtitulo: 'Escaneo de bultos y conteo a bordo',
+    subtitulo: 'Revisa manifiesto y escanea paquetes',
     icono: '🚌',
     roles: [{ rol: 'ayudante', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel' },
-      { href: '/viajes', label: 'Mis Viajes (Escaneo)' },
+      { href: '/viajes', label: 'Mis Viajes (Manifiestos y Carga)' },
       { href: '/incidencias', label: 'Incidencias' },
     ],
   },
   {
     id: 'guardia',
-    titulo: 'Guardia / Control Salida',
+    titulo: 'Conductor / Control Salida',
     subtitulo: 'Verifica carga y autoriza salida',
     icono: '🛡️',
-    roles: [{ rol: 'guardia', agenciaId: null }, { rol: 'responsable_agencia', agenciaId: null }],
+    roles: [{ rol: 'guardia', agenciaId: null }, { rol: 'responsable_agencia', agenciaId: null }, { rol: 'supervisor', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel' },
       { href: '/viajes', label: 'Autorizar Salidas' },
@@ -71,32 +58,18 @@ const ROLES: RolInfo[] = [
     ],
   },
   {
-    id: 'supervisor',
-    titulo: 'Supervisor Operativo',
-    subtitulo: 'Resuelve incidencias y excepciones',
-    icono: '⭐',
-    roles: [{ rol: 'supervisor', agenciaId: null }],
-    rutasPermitidas: [
-      { href: '/panel', label: 'Panel' },
-      { href: '/incidencias', label: 'Resolver Incidencias' },
-      { href: '/viajes', label: 'Autorizar Excepciones' },
-      { href: '/redespachos', label: 'Redespachos' },
-      { href: '/mensajes', label: 'Auditoría Mensajes', permiso: 'ver:mensajes' },
-    ],
-  },
-  {
     id: 'gerente',
     titulo: 'Gerencia General',
-    subtitulo: 'Supervisión y métricas globales',
+    subtitulo: 'Gestión de viajes y métricas globales',
     icono: '📊',
-    roles: [{ rol: 'gerente', agenciaId: null }],
+    roles: [{ rol: 'gerente', agenciaId: null }, { rol: 'admin', agenciaId: null }, { rol: 'supervisor', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel Ejecutivo' },
-      { href: '/tarifas', label: 'Tarifas y Precios' },
+      { href: '/viajes', label: 'Gestión de Viajes' },
       { href: '/encomiendas', label: 'Historial Encomiendas' },
-      { href: '/viajes', label: 'Historial Viajes' },
-      { href: '/incidencias', label: 'Auditoría Incidencias' },
+      { href: '/tarifas', label: 'Tarifas y Precios' },
       { href: '/mensajes', label: 'Mensajes WhatsApp', permiso: 'ver:mensajes' },
+      { href: '/incidencias', label: 'Auditoría Incidencias' },
     ],
   },
 ];

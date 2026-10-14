@@ -10,7 +10,7 @@ const vacio = () => ({ kg: '', l: '', a: '', h: '', fotoUrl: '' });
 export default function Nueva() {
   const u = useUsuario();
   const [cat, setCat] = useState<any>(null);
-  const [f, setF] = useState<any>({ origenId: '', destinoId: '', remitenteNombre: '', remitenteTel: '', destNombre: '', destTel: '', contenido: '', refExterna: '' });
+  const [f, setF] = useState<any>({ origenId: '', destinoId: '', viajeId: '', remitenteNombre: '', remitenteTel: '', destNombre: '', destTel: '', contenido: '', refExterna: '' });
   const [bultos, setBultos] = useState([vacio()]);
   const [cot, setCot] = useState<any>(null);
   const [manual, setManual] = useState({ valor: '', motivo: '' });
@@ -22,6 +22,58 @@ export default function Nueva() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [indiceBultoFoto, setIndiceBultoFoto] = useState<number>(0);
 
+  // Encontrar viajes válidos que cubran el tramo origen -> destino
+  const viajesCompatibles = (cat?.viajes || []).filter((v: any) => {
+    if (!f.origenId || !f.destinoId || f.origenId === f.destinoId) return true;
+    const ruta = cat?.rutas?.find((r: any) => r.id === v.ruta_id);
+    if (!ruta || !ruta.paradas) return true;
+    const pOrigen = ruta.paradas.find((p: any) => p.agencia_id === f.origenId);
+    const pDestino = ruta.paradas.find((p: any) => p.agencia_id === f.destinoId);
+    // Para que el bus cubra el envío, debe pasar primero por el origen y después por el destino
+    return pOrigen && pDestino && pOrigen.orden < pDestino.orden;
+  });
+
+  useEffect(() => {
+    // Restaurar borrador de localStorage si existe
+    try {
+      const savedF = localStorage.getItem('encomienda_borrador_f');
+      const savedBultos = localStorage.getItem('encomienda_borrador_bultos');
+      const savedManual = localStorage.getItem('encomienda_borrador_manual');
+      if (savedF) setF(JSON.parse(savedF));
+      if (savedBultos) setBultos(JSON.parse(savedBultos));
+      if (savedManual) setManual(JSON.parse(savedManual));
+    } catch (e) {
+      console.warn('Error leyendo localStorage', e);
+    }
+  }, []);
+
+  // Guardar automáticamente en localStorage ante cualquier cambio
+  useEffect(() => {
+    try {
+      localStorage.setItem('encomienda_borrador_f', JSON.stringify(f));
+    } catch {}
+  }, [f]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('encomienda_borrador_bultos', JSON.stringify(bultos));
+    } catch {}
+  }, [bultos]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('encomienda_borrador_manual', JSON.stringify(manual));
+    } catch {}
+  }, [manual]);
+
+  const limpiarBorrador = () => {
+    try {
+      localStorage.removeItem('encomienda_borrador_f');
+      localStorage.removeItem('encomienda_borrador_bultos');
+      localStorage.removeItem('encomienda_borrador_manual');
+    } catch {}
+  };
+
   useEffect(() => {
     llamar('/api/catalogos')
       .then((c: any) => {
@@ -29,13 +81,63 @@ export default function Nueva() {
         const agencias = c?.agencias || [];
         const mia = u?.roles?.find(r => r.agenciaId)?.agenciaId ?? agencias[0]?.id ?? '';
         const otra = agencias.find((a: any) => a.id !== mia)?.id ?? agencias[1]?.id ?? mia;
-        setF((x: any) => ({ ...x, origenId: mia, destinoId: otra }));
+
+        setF((prev: any) => {
+          const origenFinal = prev.origenId || mia;
+          const destinoFinal = prev.destinoId || otra;
+
+          let viajeAuto = prev.viajeId || '';
+          if (!viajeAuto && c?.rutas && c?.viajes) {
+            const rutaCompat = c.rutas.find((r: any) => {
+              const po = r.paradas?.find((p: any) => p.agencia_id === origenFinal);
+              const pd = r.paradas?.find((p: any) => p.agencia_id === destinoFinal);
+              return po && pd && po.orden < pd.orden;
+            });
+            if (rutaCompat) {
+              const vComp = c.viajes.find((v: any) => v.ruta_id === rutaCompat.id);
+              if (vComp) viajeAuto = vComp.id;
+            }
+          }
+
+          return {
+            ...prev,
+            origenId: origenFinal,
+            destinoId: destinoFinal,
+            viajeId: viajeAuto,
+          };
+        });
       })
       .catch((err) => {
         console.error('Error cargando catálogos:', err);
         setErr(err);
       });
   }, [u]);
+
+  // Manejo inteligente de cambio de origen o destino
+  const cambiarRuta = (campo: 'origenId' | 'destinoId', valor: string) => {
+    const nuevoOrigen = campo === 'origenId' ? valor : f.origenId;
+    const nuevoDestino = campo === 'destinoId' ? valor : f.destinoId;
+
+    // Buscar primer viaje compatible con el nuevo origen y destino
+    let viajeAuto = '';
+    if (cat?.rutas && cat?.viajes && nuevoOrigen && nuevoDestino && nuevoOrigen !== nuevoDestino) {
+      const rutaCompat = cat.rutas.find((r: any) => {
+        const po = r.paradas?.find((p: any) => p.agencia_id === nuevoOrigen);
+        const pd = r.paradas?.find((p: any) => p.agencia_id === nuevoDestino);
+        return po && pd && po.orden < pd.orden;
+      });
+      if (rutaCompat) {
+        const vComp = cat.viajes.find((v: any) => v.ruta_id === rutaCompat.id);
+        if (vComp) viajeAuto = vComp.id;
+      }
+    }
+
+    setF((prev: any) => ({
+      ...prev,
+      [campo]: valor,
+      viajeId: viajeAuto || prev.viajeId,
+    }));
+  };
 
   const cuerpo = () => ({
     origenId: f.origenId,
@@ -104,8 +206,10 @@ export default function Nueva() {
         destTel: f.destTel || null,
         contenido: f.contenido || null,
         refExterna: refFinal,
+        viajeId: f.viajeId || null,
         manual: manual.valor ? { valorCent: Math.round(parseFloat(manual.valor) * 100), motivo: manual.motivo } : null,
       });
+      limpiarBorrador();
       setRes(r);
     } catch (e: any) {
       setErr(e);
@@ -118,6 +222,17 @@ export default function Nueva() {
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const setB = (i: number, k: string) => (e: any) =>
     setBultos(bultos.map((b, j) => (j === i ? { ...b, [k]: e.target.value } : b)));
+
+  const descartarBorrador = () => {
+    limpiarBorrador();
+    const agencias = cat?.agencias || [];
+    const mia = u?.roles?.find(r => r.agenciaId)?.agenciaId ?? agencias[0]?.id ?? '';
+    const otra = agencias.find((a: any) => a.id !== mia)?.id ?? agencias[1]?.id ?? mia;
+    setF({ origenId: mia, destinoId: otra, viajeId: '', remitenteNombre: '', remitenteTel: '', destNombre: '', destTel: '', contenido: '', refExterna: '' });
+    setBultos([vacio()]);
+    setManual({ valor: '', motivo: '' });
+    setCot(null);
+  };
 
   if (!cat) return <div>Cargando...</div>;
   const destino = cat.agencias.find((a: any) => a.id === f.destinoId)?.nombre ?? '';
@@ -135,7 +250,7 @@ export default function Nueva() {
           <Link className="btn sec" href={'/encomiendas/' + res.id}>
             Ver encomienda
           </Link>{' '}
-          <button className="sec" onClick={() => location.reload()}>
+          <button className="sec" onClick={() => { limpiarBorrador(); location.reload(); }}>
             Registrar otra
           </button>
         </p>
@@ -157,7 +272,17 @@ export default function Nueva() {
 
   return (
     <div>
-      <h1>Nueva encomienda</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        <h1 style={{ margin: 0 }}>Nueva encomienda</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: '12px', color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+            💾 Guardado automático en este navegador
+          </span>
+          <button type="button" className="sec" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={descartarBorrador}>
+            Limpiar formulario
+          </button>
+        </div>
+      </div>
       <Error_ e={err} />
 
       {/* Input oculto para cámara o subir foto */}
@@ -171,11 +296,11 @@ export default function Nueva() {
       />
 
       <div className="card">
-        <h2>Ruta</h2>
+        <h2>Ruta y Asignación de Viaje</h2>
         <div className="row">
           <label>
             Agencia origen
-            <select value={f.origenId} onChange={set('origenId')}>
+            <select value={f.origenId} onChange={e => cambiarRuta('origenId', e.target.value)}>
               {cat.agencias.map((a: any) => (
                 <option key={a.id} value={a.id}>
                   {a.nombre}
@@ -185,7 +310,7 @@ export default function Nueva() {
           </label>
           <label>
             Agencia destino
-            <select value={f.destinoId} onChange={set('destinoId')}>
+            <select value={f.destinoId} onChange={e => cambiarRuta('destinoId', e.target.value)}>
               {cat.agencias.map((a: any) => (
                 <option key={a.id} value={a.id}>
                   {a.nombre}
@@ -193,7 +318,25 @@ export default function Nueva() {
               ))}
             </select>
           </label>
+          <label>
+            🚌 Viaje / Turno asignado (Manifiesto automático)
+            <select value={f.viajeId || ''} onChange={set('viajeId')}>
+              <option value="">-- Sin viaje inmediato (queda en bodega) --</option>
+              {viajesCompatibles.length > 0 ? (
+                viajesCompatibles.map((v: any) => (
+                  <option key={v.id} value={v.id}>
+                    ⭐ {v.vehiculo} · {v.ruta_nombre} {v.conductor ? `(${v.conductor})` : ''}
+                  </option>
+                ))
+              ) : (
+                <option disabled>No hay viajes activos directos para este tramo</option>
+              )}
+            </select>
+          </label>
         </div>
+        <p className="muted" style={{ marginTop: 8, fontSize: '12.5px' }}>
+          💡 <b>Filtro inteligente activo:</b> Se muestran y pre-seleccionan automáticamente solo los turnos de buses que cubren el trayecto desde el origen hacia el destino elegido.
+        </p>
       </div>
 
       <div className="grid">
