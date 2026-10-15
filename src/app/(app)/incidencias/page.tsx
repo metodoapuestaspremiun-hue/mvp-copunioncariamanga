@@ -18,11 +18,11 @@ export default function Incidencias() {
     <div><h1>Incidencias</h1><Error_ e={err} />
       <div className="card"><h2>Reportar incidencia</h2><div className="row">
         <label>Tipo<select value={f.tipo} onChange={e => setF({ ...f, tipo: e.target.value })}>{TIPOS.map(t => <option key={t}>{t}</option>)}</select></label>
-        <label>Codigo del bulto<input value={f.codigo} onChange={e => setF({ ...f, codigo: e.target.value })} /></label>
+        <label>Código del paquete<input value={f.codigo} onChange={e => setF({ ...f, codigo: e.target.value })} /></label>
         <label>Nota<input value={f.nota} onChange={e => setF({ ...f, nota: e.target.value })} /></label><button onClick={abrir}>Reportar</button></div></div>
       <div className="card"><label style={{ flexDirection: 'row', gap: 8 }}><input type="checkbox" checked={todas} onChange={e => setTodas(e.target.checked)} /> Incluir resueltas</label>
         <div className="tabla-scroll">
-          <table className="tabla-fija"><thead><tr><th>Tipo</th><th>Bulto</th><th>Abierta</th><th>Estado</th><th>Nota</th><th></th></tr></thead><tbody>
+          <table className="tabla-fija"><thead><tr><th>Tipo</th><th>Paquete</th><th>Abierta</th><th>Estado</th><th>Nota</th><th></th></tr></thead><tbody>
             {d.map(i => <tr key={i.id}><td><span className="tag rojo">{i.tipo}</span></td><td className="mono">{i.bulto_id ? <Link href={'/bultos/' + i.bulto_id}>{fmtLegible(i.codigo_legible)}</Link> : ''}</td><td>{fechaEC(i.abierta_at)}</td>
               <td>{i.resuelta_at ? <span className="tag verde">Resuelta {fechaEC(i.resuelta_at)}</span> : <span className="tag rojo">Abierta</span>}</td><td>{i.nota}</td>
               <td>{!i.resuelta_at && puede(u, 'incidencia:resolver') && <button className="sec" onClick={() => resolver(i.id)}>Resolver</button>}</td></tr>)}</tbody></table>

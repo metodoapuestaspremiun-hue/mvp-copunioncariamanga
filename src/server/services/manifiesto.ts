@@ -33,22 +33,51 @@ export async function crearViaje(actorId: string, i: { rutaId: string; fecha: st
 export async function listarViajes(db: Db) {
   return q<any>(db,
     `SELECT v.id,v.fecha,v.vehiculo,v.estado,v.parada_actual,r.nombre ruta,
+            v.conductor, v.ayudante,
             (SELECT COUNT(*) FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id
               WHERE m.viaje_id=v.id AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items
        FROM viaje v JOIN ruta r ON r.id=v.ruta_id ORDER BY v.fecha DESC, v.id DESC LIMIT 50`);
+}
+
+/** Lista los usuarios que pueden actuar como tripulación (chofer / ayudante) */
+export async function listarTripulantes(db: Db) {
+  return q<any>(db,
+    `SELECT u.id, u.nombre, u.email,
+            GROUP_CONCAT(ur.rol ORDER BY ur.rol SEPARATOR ',') AS roles
+       FROM usuario u
+       JOIN usuario_rol ur ON ur.usuario_id = u.id
+      WHERE u.activo = 1
+        AND ur.rol IN ('ayudante','operador','despachador','guardia','responsable_agencia','supervisor')
+      GROUP BY u.id, u.nombre, u.email
+      ORDER BY u.nombre`);
 }
 
 export async function obtenerViaje(db: Db, id: string) {
   const v = await q1<any>(db, 'SELECT v.*, r.nombre ruta FROM viaje v JOIN ruta r ON r.id=v.ruta_id WHERE v.id=?', [id]);
   if (!v) throw new ErrorNegocio('VIAJE_NO_ENCONTRADO', 'Viaje no encontrado', undefined, 404);
   const paradas = await q<any>(db, 'SELECT p.orden,p.nombre,p.agencia_id FROM parada p WHERE ruta_id=? ORDER BY orden', [v.ruta_id]);
-  const manifiestos = await q<any>(db, 'SELECT version,cerrado_at,motivo_cambio FROM manifiesto WHERE viaje_id=? ORDER BY version', [id]);
+  const manifiestos = await q<any>(db, 'SELECT version,cerrado_at,cerrado_por,motivo_cambio FROM manifiesto WHERE viaje_id=? ORDER BY version', [id]);
   const ultima = manifiestos[manifiestos.length - 1];
   const items = ultima ? await q<any>(db,
     `SELECT mi.bulto_id,mi.sube_orden,mi.baja_orden,b.estado,b.codigo_legible,b.numero,e.codigo enc_codigo,e.dest_nombre
        FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id JOIN bulto b ON b.id=mi.bulto_id JOIN encomienda e ON e.id=b.encomienda_id
       WHERE m.viaje_id=? AND m.version=? ORDER BY mi.sube_orden, e.codigo, b.numero`, [id, ultima.version]) : [];
-  return { ...v, paradas, manifiestos, borrador: !!ultima && !ultima.cerrado_at, version: ultima?.version ?? null, items };
+  // Datos de tripulación asignada
+  const conductorUsr = v.conductor_usuario_id
+    ? await q1<any>(db, 'SELECT id, nombre, email FROM usuario WHERE id=?', [v.conductor_usuario_id])
+    : null;
+  const ayudanteUsr = v.ayudante_usuario_id
+    ? await q1<any>(db, 'SELECT id, nombre, email FROM usuario WHERE id=?', [v.ayudante_usuario_id])
+    : null;
+  return {
+    ...v,
+    paradas, manifiestos,
+    borrador: !!ultima && !ultima.cerrado_at,
+    version: ultima?.version ?? null,
+    items,
+    conductorUsr,
+    ayudanteUsr,
+  };
 }
 
 export async function agregarItem(actorId: string, i: { viajeId: string; codigo: string; subeOrden: number; bajaOrden: number }) {
@@ -106,13 +135,42 @@ export async function quitarItem(actorId: string, i: { viajeId: string; bultoId:
   });
 }
 
-export async function cerrarManifiesto(actorId: string, viajeId: string) {
+export interface TripulacionInput {
+  conductorId?: string | null;      // id usuario del chofer (opcional)
+  conductorNombre?: string | null;  // nombre libre si no tiene cuenta
+  ayudanteId?: string | null;       // id usuario del ayudante (opcional)
+  ayudanteNombre?: string | null;   // nombre libre si no tiene cuenta
+}
+
+export async function cerrarManifiesto(
+  actorId: string,
+  viajeId: string,
+  tripulacion: TripulacionInput = {},
+) {
   return tx(async c => {
     const v = await viajeLock(c, viajeId);
     const m = await borrador(c, viajeId);
     if (!m) throw new ErrorNegocio('SIN_BORRADOR', 'No hay un manifiesto abierto para cerrar');
     const items = await q<any>(c, 'SELECT * FROM manifiesto_item WHERE manifiesto_id=?', [m.id]);
     if (!items.length) throw new ErrorNegocio('MANIFIESTO_VACIO', 'El manifiesto no tiene bultos');
+
+    // Validar que al menos el conductor esté identificado
+    const condNombre = tripulacion.conductorNombre?.trim() || null;
+    const condId     = tripulacion.conductorId?.trim()     || null;
+    const ayNombre   = tripulacion.ayudanteNombre?.trim()  || null;
+    const ayId       = tripulacion.ayudanteId?.trim()      || null;
+    if (!condNombre && !condId) throw new ErrorNegocio('CONDUCTOR_REQUERIDO', 'Debes indicar el chofer antes de cerrar el manifiesto', undefined, 400);
+
+    // Validar que los IDs de usuario existan
+    if (condId) {
+      const u = await q1<any>(c, 'SELECT id FROM usuario WHERE id=? AND activo=1', [condId]);
+      if (!u) throw new ErrorNegocio('CONDUCTOR_INVALIDO', 'El usuario seleccionado como chofer no existe o está inactivo', undefined, 400);
+    }
+    if (ayId) {
+      const u = await q1<any>(c, 'SELECT id FROM usuario WHERE id=? AND activo=1', [ayId]);
+      if (!u) throw new ErrorNegocio('AYUDANTE_INVALIDO', 'El usuario seleccionado como ayudante no existe o está inactivo', undefined, 400);
+    }
+
     const prevV = await versionVigente(c, viajeId);
     const previos = prevV ? await q<any>(c, 'SELECT mi.* FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id WHERE m.viaje_id=? AND m.version=?', [viajeId, prevV]) : [];
     const prevIds = new Set(previos.map(p => p.bulto_id));
@@ -135,9 +193,27 @@ export async function cerrarManifiesto(actorId: string, viajeId: string) {
       await ex(c, 'UPDATE bulto SET estado=?, viaje_actual_id=NULL, version=version+1 WHERE id=?', [tr.orden > 1 ? 'pendiente_redespacho' : 'registrado', b.id]);
       await registrarEvento(c, { tipo: 'retirado_de_manifiesto', bultoId: b.id, viajeId, actorId });
     }
+
     await ex(c, 'UPDATE manifiesto SET cerrado_at=NOW(3), cerrado_por=? WHERE id=?', [actorId, m.id]);
+
+    // Actualizar tripulación y timestamp de cierre en el viaje
+    await ex(c,
+      `UPDATE viaje SET
+         conductor              = COALESCE(?, conductor),
+         ayudante              = ?,
+         conductor_usuario_id  = ?,
+         ayudante_usuario_id   = ?,
+         manifiesto_cerrado_at = NOW(3),
+         manifiesto_cerrado_por = ?
+       WHERE id = ?`,
+      [condNombre, ayNombre, condId, ayId, actorId, viajeId],
+    );
+
     if (v.estado === 'planificado') await ex(c, "UPDATE viaje SET estado='manifiesto_cerrado' WHERE id=?", [viajeId]);
-    await registrarEvento(c, { tipo: 'manifiesto_version_cerrada', viajeId, actorId, payload: { version: m.version } });
+    await registrarEvento(c, {
+      tipo: 'manifiesto_version_cerrada', viajeId, actorId,
+      payload: { version: m.version, conductorId: condId, conductorNombre: condNombre, ayudanteId: ayId, ayudanteNombre: ayNombre },
+    });
     return { version: m.version };
   });
 }

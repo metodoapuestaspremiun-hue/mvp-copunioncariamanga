@@ -68,12 +68,12 @@ export default function Parada() {
         {hist.length > 0 && <table><tbody>{hist.map((h, i) => <tr key={i}><td className="mono">{fmtLegible(h.codigo ?? '')}</td><td>{h.modo}</td><td>{h.resultado}</td><td className="muted">{h.alerta}</td></tr>)}</tbody></table>}</div>}
 
       {puede(u, 'conteo:continuan') && continuan > 0 && enParada && <div className="card"><h2>Conteo de los que continuan a bordo</h2>
-        <p className="muted">Cuenta con tus ojos los bultos que siguen en el bus (el sistema espera {continuan}). Conteo registrado: <b>{d.conteo ?? 'ninguno'}</b></p>
+        <p className="muted">Cuenta con tus ojos los paquetes que siguen en el bus (el sistema espera {continuan}). Conteo registrado: <b>{d.conteo ?? 'ninguno'}</b></p>
         <div className="row"><label>Cantidad contada<input type="number" min={0} value={conteo} onChange={e => setConteo(e.target.value)} /></label>
           <button onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/conteo`, 'POST', { conteo: parseInt(conteo || '0') }), 'Conteo registrado')} disabled={conteo === ''}>Registrar conteo</button></div></div>}
 
       <div className="card"><h2>Salida de esta parada</h2>
-        {ev.normalPermitida ? <div className="okmsg">La carga concilia con el manifiesto. Se esperan {ev.esperadoABordo} bulto(s) a bordo al salir.</div>
+        {ev.normalPermitida ? <div className="okmsg">La carga concilia con el manifiesto. Se esperan {ev.esperadoABordo} paquete(s) a bordo al salir.</div>
           : <div className="err"><b>Salida bloqueada</b>{ev.mensajes.map((m: string, i: number) => <div key={i}>• {m}</div>)}</div>}
         {aut ? <p>Autorizacion vigente ({aut.tipo}) {fechaEC(aut.autorizado_at)} {aut.salida_real_at ? <b>· SALIDA REGISTRADA {fechaEC(aut.salida_real_at)}</b> : ''}</p> : <p className="muted">Sin autorizacion vigente.</p>}
         {enParada && !aut && puede(u, 'salida:autorizar') && <button className="verde" disabled={!ev.normalPermitida} onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'normal' }), 'Salida autorizada')}>Autorizar salida</button>}

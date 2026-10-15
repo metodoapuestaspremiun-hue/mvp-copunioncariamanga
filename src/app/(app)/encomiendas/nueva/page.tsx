@@ -366,7 +366,7 @@ export default function Nueva() {
       </div>
 
       <div className="card">
-        <h2>Bultos y Registro Fotográfico de Evidencia</h2>
+        <h2>Paquetes y Registro Fotográfico de Evidencia</h2>
 
         {/* Vista desktop: tabla compacta */}
         <div className="tabla-bultos-desktop">
@@ -456,7 +456,7 @@ export default function Nueva() {
           {bultos.map((b, i) => (
             <div key={i} className="bulto-card-movil">
               <div className="bulto-num">
-                <span>📦 Bulto #{i + 1}</span>
+                <span>📦 Paquete #{i + 1}</span>
                 {bultos.length > 1 && (
                   <button type="button" className="sec" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setBultos(bultos.filter((_, j) => j !== i))}>
                     Quitar
@@ -513,7 +513,7 @@ export default function Nueva() {
 
         <p style={{ marginTop: 12 }}>
           <button type="button" className="sec" onClick={() => setBultos([...bultos, vacio()])}>
-            + Agregar bulto
+            + Agregar paquete
           </button>
         </p>
         <div className="row" style={{ marginTop: 14 }}>

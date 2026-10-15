@@ -12,7 +12,7 @@ export default function Recepcion() {
     setErr(null);
     try { const r: any = await llamar('/api/recepciones', 'POST', { codigo, agenciaId: ag });
       const texto = r.resultado === 'repetido' ? { resultado: 'repetido', codigo: r.codigo, alerta: 'Ya habia sido recibido' }
-        : { resultado: 'ok', codigo: r.codigo, encomienda: r.encomienda, alerta: r.estado === 'pendiente_redespacho' ? 'No es su destino final: queda PENDIENTE DE REDESPACHO con plazo' : 'Es su destino final: DISPONIBLE PARA RETIRO (si estan todos los bultos, se emite el codigo)' };
+        : { resultado: 'ok', codigo: r.codigo, encomienda: r.encomienda, alerta: r.estado === 'pendiente_redespacho' ? 'No es su destino final: queda PENDIENTE DE REDESPACHO con plazo' : 'Es su destino final: DISPONIBLE PARA RETIRO (si están todos los paquetes, se emite el código)' };
       setRes(texto); setHist(h => [texto, ...h].slice(0, 10)); }
     catch (e: any) { setErr(e); setRes(null); }
   };
@@ -20,6 +20,6 @@ export default function Recepcion() {
   return (
     <div><h1>Recepcion en agencia</h1><Error_ e={err} />
       <div className="card"><div className="row"><label>Agencia que recibe<select value={ag} onChange={e => setAg(e.target.value)}>{cat.agencias.map((a: any) => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select></label></div>
-        <p className="muted">Se recibe bulto por bulto escaneando la etiqueta. No existe "recibir todo el lote" sin verificar cada bulto.</p>
+        <p className="muted">Se recibe paquete por paquete escaneando la etiqueta. No existe "recibir todo el lote" sin verificar cada paquete.</p>
         <Scanner onCode={recibir} /><ResultadoGrande r={res} /></div></div>);
 }

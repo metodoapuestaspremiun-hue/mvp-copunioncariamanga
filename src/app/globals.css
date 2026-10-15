@@ -63,9 +63,8 @@ a:hover { color: #1e3a8a; text-decoration: underline; }
 }
 
 main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 28px 22px 60px;
+  max-width: 100%;
+  padding: 22px 28px 60px;
   width: 100%;
 }
 
@@ -825,6 +824,363 @@ nav.top-header .brand {
 }
 
 /* ========================================================
+   MODERNO DASHBOARD: ACCESO RÁPIDO & PESTAÑAS (TABS)
+   ======================================================== */
+.dash-header-wrap {
+  margin-bottom: 20px;
+}
+.dash-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dash-title-row h1 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.dash-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 4px 6px 4px 14px;
+  box-shadow: 0 2px 8px rgba(10, 25, 47, 0.05);
+  flex: 1;
+  max-width: 440px;
+  transition: all 0.2s ease;
+}
+.dash-search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.dash-search-box input {
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 14px;
+  box-shadow: none !important;
+  transform: none !important;
+  flex: 1;
+}
+
+/* Quick Access Cards (Inspirado en Google Drive / Carpetas de Acceso Rápido) */
+.dash-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: #64748b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.dash-quick-card {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 115px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+  text-decoration: none;
+  overflow: hidden;
+}
+.dash-quick-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+.dash-quick-card:hover {
+  transform: translateY(-3px);
+  border-color: #93c5fd;
+  box-shadow: 0 10px 22px rgba(15, 43, 72, 0.1);
+  text-decoration: none;
+}
+.dash-quick-card.azul-activo {
+  background: linear-gradient(135deg, #0a192f 0%, #1e3a8a 100%);
+  border-color: #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(10, 25, 47, 0.25);
+}
+.dash-quick-card.azul-activo .dash-card-num {
+  color: #ffffff;
+}
+.dash-quick-card.azul-activo .dash-card-label {
+  color: #93c5fd;
+}
+.dash-quick-card.azul-activo .dash-card-icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+.dash-quick-card.azul-activo .dash-card-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.dash-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.dash-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  transition: transform 0.2s ease;
+}
+.dash-card-sigla {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.dash-quick-card.azul-activo .dash-card-sigla {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.dash-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+.dash-card-badge.urgente {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.dash-card-badge.alerta {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.dash-card-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.dash-card-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Barra de Pestañas (Tabs) Estilo Drive / Suite Moderna */
+.dash-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dash-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dash-tab-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: none;
+}
+.dash-tab-btn.activo {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(29, 78, 216, 0.25) !important;
+}
+.dash-tab-count {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+}
+.dash-tab-btn.activo .dash-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Contenido del Tab Activo */
+.dash-tab-panel {
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.dash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid #f1f5f9;
+  margin-bottom: 16px;
+}
+.dash-panel-header h2 {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Grid panorámico para "Todo el resumen" */
+.dash-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .dash-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .dash-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.dash-compact-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 230px;
+}
+.dash-compact-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 8px 24px rgba(15, 43, 72, 0.08);
+  transform: translateY(-2px);
+}
+.dash-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid #f1f5f9;
+}
+.dash-compact-header h2 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-compact-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 3px 9px;
+  border-radius: 8px;
+  text-decoration: none !important;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.dash-compact-link:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.dash-compact-table {
+  width: 100%;
+  font-size: 12.5px;
+}
+.dash-compact-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid #f8fafc;
+}
+.dash-compact-table tr:last-child td {
+  border-bottom: none;
+}
+.dash-compact-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 11.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ========================================================
    RESPONSIVE DESIGN Y OPTIMIZACIÓN MÓVIL
    ======================================================== */
 
@@ -1140,3 +1496,309 @@ nav.top-header .brand {
     justify-content: center;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   TRIPULACIÓN — Sección de asignación antes del cierre
+   ═══════════════════════════════════════════════════ */
+
+/* Badge de tripulación (visible cuando el manifiesto está cerrado) */
+.tripulacion-badge-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+}
+
+.tripulacion-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radio-sm);
+  padding: 8px 14px;
+  min-width: 160px;
+  flex: 1;
+}
+
+.tripulacion-icono {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tripulacion-rol {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tripulacion-nombre {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
+  margin-top: 2px;
+}
+
+/* Caja de asignación (en modo borrador) */
+.tripulacion-box {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1.5px solid #bfdbfe;
+  border-radius: var(--radio-md);
+  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.08);
+}
+
+.tripulacion-box-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tripulacion-box-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tripulacion-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 600px) {
+  .tripulacion-campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tripulacion-campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tripulacion-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1e3a8a;
+}
+
+.tripulacion-select,
+.tripulacion-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--radio-sm);
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.tripulacion-select:focus,
+.tripulacion-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: #ffffff;
+}
+
+.tripulacion-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* ═══════════════════════════════════════════════════
+   MI VIAJE — Página del chofer / ayudante
+   ═══════════════════════════════════════════════════ */
+
+.mi-viaje-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.mi-viaje-loading,
+.mi-viaje-sin-viaje {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 50vh;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.mi-viaje-sin-viaje-icon {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+/* Hero card del viaje activo */
+.mi-viaje-hero-card {
+  background: linear-gradient(135deg, rgba(12, 35, 80, 0.9) 0%, rgba(8, 20, 55, 0.95) 100%);
+  border: 1.5px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radio);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.mi-viaje-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.mi-viaje-hero-ruta {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.mi-viaje-hero-vehiculo {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.mi-viaje-hero-fecha {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 3px;
+  text-transform: capitalize;
+}
+
+.mi-viaje-hero-cierre {
+  font-size: 12px;
+  color: #60a5fa;
+  margin-top: 6px;
+}
+
+.mi-viaje-hero-estado {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Parada actual */
+.mi-viaje-parada-actual {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radio-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.mi-viaje-parada-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mi-viaje-parada-nombre {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+/* Stats */
+.mi-viaje-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .mi-viaje-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mi-viaje-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radio-sm);
+  padding: 12px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mi-viaje-stat:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mi-viaje-stat.pendiente { border-color: rgba(234, 179, 8, 0.3); }
+.mi-viaje-stat.cargado   { border-color: rgba(59, 130, 246, 0.3); }
+.mi-viaje-stat.entregado { border-color: rgba(34, 197, 94, 0.3); }
+
+.mi-viaje-stat-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.mi-viaje-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Filtros de tabla */
+.mi-viaje-filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.mi-viaje-filtro-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--borde);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mi-viaje-filtro-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.mi-viaje-filtro-btn.activo {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #ffffff;
+}
+
