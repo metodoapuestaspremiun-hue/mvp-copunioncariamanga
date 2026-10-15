@@ -26,7 +26,7 @@ export async function emitirCodigoSiCorresponde(db: Db, encomiendaId: string) {
   const e = await q1<any>(db, 'SELECT e.*, a.nombre agencia FROM encomienda e JOIN agencia a ON a.id=e.destino_agencia_id WHERE e.id=?', [encomiendaId]);
   const hasta = new Date(Date.now() + dias * 86400000);
   await encolar(db, { dedupeKey: `enc:${encomiendaId}:disponible_retiro:${id}`, encomiendaId, tel: e.dest_tel, plantilla: 'disponible_retiro',
-    cuerpo: T.disponible_retiro({ agencia: e.agencia, codigo, hasta }) });
+    cuerpo: T.disponible_retiro({ agencia: e.agencia, codigo, hasta, encCodigo: e.codigo }) });
   return { codigoId: id };
 }
 

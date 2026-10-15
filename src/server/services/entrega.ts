@@ -29,14 +29,26 @@ export async function buscarEncomiendaParaEntrega(db: Db, texto: string) {
   if (!e && n.length === 8) {
     e = await q1<any>(db, 'SELECT e.id FROM bulto b JOIN encomienda e ON e.id=b.encomienda_id WHERE b.codigo_legible=?', [n]);
   }
-  if (!e) throw new ErrorNegocio('NO_ENCONTRADA', 'No se encontro la encomienda', undefined, 404);
+  // Búsqueda directa por Código de Retiro de 6 dígitos (el que le llega al cliente por WhatsApp)
+  if (!e && /^\d{6}$/.test(raw)) {
+    const secreto = secretoRetiro();
+    // Primero buscar vigentes
+    const rows = await q<any>(db, 'SELECT id, encomienda_id, hmac, consumido_at, invalidado_at FROM codigo_retiro ORDER BY creado_at DESC');
+    for (const r of rows) {
+      if (codigoCoincide(r.hmac, secreto, r.encomienda_id, raw)) {
+        e = { id: r.encomienda_id, codigoIngresadoDirecto: raw, consumido: !!r.consumido_at };
+        break;
+      }
+    }
+  }
+  if (!e) throw new ErrorNegocio('NO_ENCONTRADA', 'No se encontró la encomienda (puedes buscar por código de retiro de 6 dígitos, código E-XXXX o paquete)', undefined, 404);
   const enc = await q1<any>(db,
     `SELECT e.id,e.codigo,e.dest_nombre,e.dest_tel,a.nombre destino,v.estado
        FROM encomienda e JOIN agencia a ON a.id=e.destino_agencia_id LEFT JOIN v_encomienda_estado v ON v.id=e.id WHERE e.id=?`, [e.id]);
   const bultos = await q<any>(db, 'SELECT id,numero,codigo_legible,estado FROM bulto WHERE encomienda_id=? ORDER BY numero', [e.id]);
   const cod = await q1<any>(db, 'SELECT intentos,expira_at FROM codigo_retiro WHERE encomienda_id=? AND vigente_key IS NOT NULL', [e.id]);
   const max = await param<number>(db, 'codigo_retiro.max_intentos', 5);
-  return { ...enc, bultos, codigoRetiro: cod ? { intentosRestantes: Math.max(0, max - cod.intentos), expira_at: cod.expira_at } : null };
+  return { ...enc, bultos, codigoIngresadoDirecto: e.codigoIngresadoDirecto || null, codigoRetiro: cod ? { intentosRestantes: Math.max(0, max - cod.intentos), expira_at: cod.expira_at } : null };
 }
 
 export interface EntregaIn {

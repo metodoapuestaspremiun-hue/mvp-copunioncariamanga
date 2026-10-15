@@ -38,9 +38,9 @@ export const T = {
       `🕒 Actualizado: ${fechaEC()}`;
   },
 
-  disponible_retiro: (p: { agencia: string; codigo: string; hasta: Date }) => {
+  disponible_retiro: (p: { agencia: string; codigo: string; hasta: Date; encCodigo?: string }) => {
     return `🎉 *${MARCA}* — ¡Tu encomienda está lista!\n\n` +
-      `Tu paquete ya se encuentra disponible para entrega en *${limpiarAgencia(p.agencia)}*.\n\n` +
+      `Tu paquete (${p.encCodigo ? `*${p.encCodigo}*` : 'encomienda'}) ya se encuentra disponible para entrega en *${limpiarAgencia(p.agencia)}*.\n\n` +
       `🔐 *Tu Código de Retiro es:* *${p.codigo}*\n` +
       `📅 Válido hasta: ${fechaEC(p.hasta)}\n\n` +
       `📌 *Importante para retirar:*\n` +

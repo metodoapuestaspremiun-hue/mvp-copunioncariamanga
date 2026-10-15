@@ -6,20 +6,36 @@ import { Error_, Estado } from '@/components/ui';
 export default function Entrega() {
   const [q, setQ] = useState(''); const [e, setE] = useState<any>(null); const [err, setErr] = useState<any>(null); const [ok, setOk] = useState('');
   const [f, setF] = useState({ metodo: 'codigo', codigo: '', receptorNombre: '', receptorDoc: '', motivo: '', supEmail: '', supPass: '' });
-  const buscar = async () => { setErr(null); setOk(''); try { setE(await llamar('/api/entregas/buscar?q=' + encodeURIComponent(q))); } catch (x) { setErr(x); setE(null); } };
+  const buscar = async () => {
+    setErr(null); setOk('');
+    try {
+      const data: any = await llamar('/api/entregas/buscar?q=' + encodeURIComponent(q));
+      setE(data);
+      setF(prev => ({
+        ...prev,
+        receptorNombre: prev.receptorNombre || data.dest_nombre || '',
+        codigo: data.codigoIngresadoDirecto || (/^\d{6}$/.test(q.trim()) ? q.trim() : prev.codigo)
+      }));
+    } catch (x) {
+      setErr(x); setE(null);
+    }
+  };
   const entregar = async () => {
     setErr(null); setOk('');
     try {
       const r: any = await llamar('/api/entregas', 'POST', { encomiendaId: e.id, metodo: f.metodo, codigo: f.codigo || undefined, receptorNombre: f.receptorNombre, receptorDoc: f.receptorDoc || null,
         motivo: f.motivo || null, supervisor: f.supEmail ? { email: f.supEmail, password: f.supPass } : null });
-      setOk(r.parcial ? `Entrega PARCIAL registrada (${r.bultosEntregados} paquete/s). El resto sigue pendiente.` : `Entrega registrada (${r.bultosEntregados} paquete/s). Encomienda completa.`);
-      setF({ ...f, codigo: '', supPass: '' }); await buscar(); setOk(o => o);
-    } catch (x) { setErr(x); await buscar().catch(() => {}); }
+      const msg = r.parcial ? `✓ Entrega PARCIAL registrada (${r.bultosEntregados} paquete/s). El resto sigue pendiente.` : `✓ Entrega registrada con éxito (${r.bultosEntregados} paquete/s). Encomienda completa.`;
+      setOk(msg);
+      setE(null);
+      setQ('');
+      setF({ metodo: 'codigo', codigo: '', receptorNombre: '', receptorDoc: '', motivo: '', supEmail: '', supPass: '' });
+    } catch (x) { setErr(x); }
   };
   const set = (k: string) => (ev: any) => setF({ ...f, [k]: ev.target.value });
   return (
     <div><h1>Entrega</h1>
-      <div className="card"><div className="row"><label>Código de encomienda (E-XXXXXXXX) o de un paquete<input value={q} onChange={ev => setQ(ev.target.value)} onKeyDown={ev => ev.key === 'Enter' && buscar()} /></label><button onClick={buscar}>Buscar</button></div></div>
+      <div className="card"><div className="row"><label>Código de retiro (6 dígitos), encomienda (E-XXXX) o paquete<input value={q} onChange={ev => setQ(ev.target.value)} onKeyDown={ev => ev.key === 'Enter' && buscar()} placeholder="Ej: 947962, E-J696WYWD..." /></label><button onClick={buscar}>Buscar</button></div></div>
       <Error_ e={err} />{ok && <div className="okmsg">{ok}</div>}
       {e && <div className="grid">
         <div className="card"><h2>{e.codigo} <Estado e={e.estado ?? 'en_proceso'} /></h2><p>Destinatario: <b>{e.dest_nombre}</b> · Retira en {e.destino}</p>
