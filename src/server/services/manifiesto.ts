@@ -35,7 +35,8 @@ export async function listarViajes(db: Db) {
     `SELECT v.id,v.fecha,v.vehiculo,v.estado,v.parada_actual,r.nombre ruta,
             v.conductor, v.ayudante,
             (SELECT COUNT(*) FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id
-              WHERE m.viaje_id=v.id AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items
+              WHERE m.viaje_id=v.id AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items,
+            (SELECT COUNT(*) FROM evento ev WHERE ev.viaje_id=v.id AND ev.tipo IN ('escaneo_carga', 'escaneo_descarga')) AS escaneos
        FROM viaje v JOIN ruta r ON r.id=v.ruta_id ORDER BY v.fecha DESC, v.id DESC LIMIT 50`);
 }
 
@@ -69,6 +70,19 @@ export async function obtenerViaje(db: Db, id: string) {
   const ayudanteUsr = v.ayudante_usuario_id
     ? await q1<any>(db, 'SELECT id, nombre, email FROM usuario WHERE id=?', [v.ayudante_usuario_id])
     : null;
+  // Escaneos registrados en este viaje (cargas y descargas con QR)
+  const escaneos = await q<any>(db,
+    `SELECT ev.id, ev.tipo, ev.resultado, ev.parada_orden, ev.recibido_servidor,
+            b.codigo_legible, b.numero, e.codigo enc_codigo, e.dest_nombre,
+            p.nombre parada_nombre
+       FROM evento ev
+       JOIN bulto b ON b.id = ev.bulto_id
+       JOIN encomienda e ON e.id = b.encomienda_id
+       LEFT JOIN parada p ON (p.ruta_id = ? AND p.orden = ev.parada_orden)
+      WHERE ev.viaje_id = ?
+        AND ev.tipo IN ('escaneo_carga', 'escaneo_descarga')
+      ORDER BY ev.recibido_servidor DESC`, [v.ruta_id, id]);
+
   return {
     ...v,
     paradas, manifiestos,
@@ -77,6 +91,7 @@ export async function obtenerViaje(db: Db, id: string) {
     items,
     conductorUsr,
     ayudanteUsr,
+    escaneos,
   };
 }
 

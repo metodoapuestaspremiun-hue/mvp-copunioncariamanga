@@ -37,9 +37,11 @@ export default function Viaje() {
     try { await fn(); setOk(msg); await cargar(); } catch (e) { setErr(e); }
   };
 
+  const [tabDetalle, setTabDetalle]           = useState<'manifiesto' | 'trazabilidad'>('manifiesto');
+
   if (!v) return <div><Error_ e={err} />Cargando...</div>;
 
-  const nombreP    = (o: number) => v.paradas.find((p: any) => p.orden === o)?.nombre ?? o;
+  const nombreP    = (o: number) => v.paradas?.find((p: any) => p.orden === o)?.nombre ?? o;
   const rolBulto   = (it: any, p: number) =>
     it.baja_orden === p ? 'baja' : it.sube_orden === p ? 'sube' :
     (it.sube_orden < p && it.baja_orden > p) ? 'continua' : '';
@@ -75,7 +77,7 @@ export default function Viaje() {
           </span>
         </div>
 
-        {/* Tripulación asignada — visible solo cuando el manifiesto ya está cerrado */}
+        {/* Tripulación asignada — visible cuando el manifiesto ya está cerrado */}
         {!v.borrador && v.version && (
           <div className="tripulacion-badge-row">
             <div className="tripulacion-badge">
@@ -96,7 +98,7 @@ export default function Viaje() {
         )}
 
         <p style={{ marginTop: 12, marginBottom: 0 }}>
-          <b>Operar parada:</b>{' '}
+          <b>Operar parada en ruta:</b>{' '}
           {v.paradas.map((p: any) => (
             <Link key={p.orden} className="btn sec" style={{ marginRight: 6, marginTop: 4 }}
               href={`/viajes/${id}/paradas/${p.orden}`}>
@@ -106,8 +108,28 @@ export default function Viaje() {
         </p>
       </div>
 
+      {/* SELECTOR DE PESTAÑAS: MANIFIESTO vs TRAZABILIDAD Y ESCANEOS */}
+      <div className="dash-tabs-bar noprint" style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          className={`dash-tab-btn ${tabDetalle === 'manifiesto' ? 'activo' : ''}`}
+          onClick={() => setTabDetalle('manifiesto')}
+        >
+          <span>📦 Manifiesto de Carga</span>
+          <span className="dash-tab-count">{v.items?.length || 0}</span>
+        </button>
+        <button
+          type="button"
+          className={`dash-tab-btn ${tabDetalle === 'trazabilidad' ? 'activo' : ''}`}
+          onClick={() => setTabDetalle('trazabilidad')}
+        >
+          <span>🔍 Trazabilidad y Escaneos por Parada</span>
+          <span className="dash-tab-count">{v.escaneos?.length || 0}</span>
+        </button>
+      </div>
 
-      {/* ── MANIFIESTO ── */}
+      {/* ── SECCIÓN 1: MANIFIESTO DE CARGA ── */}
+      {tabDetalle === 'manifiesto' && (
       <div className="card">
         <h2>Manifiesto · versión {v.version}</h2>
         <div className="tabla-scroll">
@@ -275,6 +297,89 @@ export default function Viaje() {
           </div>
         )}
       </div>
+      )}
+
+      {/* ── SECCIÓN 2: TRAZABILIDAD Y REGISTRO DE ESCANEOS POR ZONA/PARADA ── */}
+      {tabDetalle === 'trazabilidad' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {v.paradas.map((p: any) => {
+            const escaneosParada = (v.escaneos || []).filter((s: any) => s.parada_orden === p.orden);
+            const subidas = escaneosParada.filter((s: any) => s.tipo === 'escaneo_carga');
+            const bajadas = escaneosParada.filter((s: any) => s.tipo === 'escaneo_descarga');
+            const esParadaActual = v.parada_actual === p.orden;
+
+            return (
+              <div key={p.orden} className="card" style={{ borderLeft: esParadaActual ? '4px solid #2563eb' : undefined }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>📍 Parada #{p.orden}: {p.nombre}</span>
+                      {esParadaActual && <span className="tag verde">En este punto</span>}
+                    </h2>
+                    <p className="muted" style={{ margin: '4px 0 0', fontSize: '13px' }}>
+                      Registro de paquetes cargados (subidos) y descargados (bajados) en esta zona.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span className="tag verde">↑ {subidas.length} subidos</span>
+                    <span className="tag">↓ {bajadas.length} bajados</span>
+                    <Link href={`/viajes/${id}/paradas/${p.orden}`} className="btn sec" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                      Escanear en esta parada ➔
+                    </Link>
+                  </div>
+                </div>
+
+                {escaneosParada.length > 0 ? (
+                  <div className="tabla-scroll">
+                    <table className="tabla-fija">
+                      <thead>
+                        <tr>
+                          <th>Operación</th>
+                          <th>Código QR / Paquete</th>
+                          <th>Encomienda</th>
+                          <th>Destinatario</th>
+                          <th>Fecha y Hora</th>
+                          <th>Resultado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {escaneosParada.map((s: any) => (
+                          <tr key={s.id}>
+                            <td>
+                              <span className={`tag ${s.tipo === 'escaneo_carga' ? 'verde' : 'amarillo'}`}>
+                                {s.tipo === 'escaneo_carga' ? '↑ SUBIDO (Carga)' : '↓ BAJADO (Descarga)'}
+                              </span>
+                            </td>
+                            <td className="mono" style={{ fontWeight: 700, fontSize: '14.5px' }}>
+                              <Link href={`/bultos/${s.codigo_legible}`} style={{ color: '#1e40af' }}>
+                                {fmtLegible(s.codigo_legible)}
+                              </Link>
+                            </td>
+                            <td>{s.enc_codigo} #{s.numero}</td>
+                            <td>{s.dest_nombre}</td>
+                            <td style={{ fontSize: '12.5px', color: '#64748b' }}>
+                              {new Date(s.recibido_servidor).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </td>
+                            <td>
+                              <span className={`tag ${s.resultado === 'ok' ? 'verde' : 'rojo'}`}>
+                                {s.resultado === 'ok' ? '✓ Verificado' : s.resultado}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="muted" style={{ margin: '8px 0 0', textAlign: 'center', padding: '16px' }}>
+                    Sin registros de escaneo en {p.nombre} todavía.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

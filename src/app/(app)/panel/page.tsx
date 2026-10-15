@@ -60,8 +60,8 @@ export default function Panel() {
           <h1>
             <span>
               {puede(u, 'encomienda:crear') ? 'Panel Operativo de Ventanilla' :
+               puede(u, 'salida:autorizar') ? 'Panel de Conductor y Control de Salidas' :
                puede(u, 'escaneo:operar') ? 'Panel de Control de Bus y Manifiestos' :
-               puede(u, 'salida:autorizar') ? 'Panel de Control de Salidas' :
                'Panel Operativo General'}
             </span>
           </h1>

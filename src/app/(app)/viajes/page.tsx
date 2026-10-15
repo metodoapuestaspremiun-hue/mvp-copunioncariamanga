@@ -90,9 +90,11 @@ export default function Viajes() {
                 <th>Fecha</th>
                 <th>Vehículo / Turno</th>
                 <th>Ruta</th>
+                <th>Tripulación Responsable</th>
                 <th>Estado</th>
                 <th>Parada actual</th>
                 <th>Paquetes</th>
+                <th>Escaneos QR</th>
                 <th>Acción</th>
               </tr>
             </thead>
@@ -105,15 +107,30 @@ export default function Viajes() {
                   </td>
                   <td>{x.ruta}</td>
                   <td>
+                    {x.conductor || x.ayudante ? (
+                      <div style={{ fontSize: '13px' }}>
+                        <div><b>Chofer:</b> {x.conductor || '—'}</div>
+                        {x.ayudante && <div style={{ color: '#64748b' }}><b>Ayudante:</b> {x.ayudante}</div>}
+                      </div>
+                    ) : (
+                      <span className="muted">Sin asignar</span>
+                    )}
+                  </td>
+                  <td>
                     <span className={'tag ' + (x.estado === 'cerrado' ? '' : x.estado === 'en_ruta' ? 'verde' : 'amarillo')}>
                       {x.estado}
                     </span>
                   </td>
-                  <td>Parada {x.parada_actual}</td>
+                  <td>Parada #{x.parada_actual}</td>
                   <td><b>{x.items}</b> paquete(s)</td>
                   <td>
+                    <span className={`tag ${Number(x.escaneos) > 0 ? 'verde' : ''}`}>
+                      {Number(x.escaneos)} verificados
+                    </span>
+                  </td>
+                  <td>
                     <Link className="btn sec" style={{ padding: '4px 10px', fontSize: '12.5px' }} href={'/viajes/' + x.id}>
-                      Ver Manifiesto ➔
+                      Trazabilidad ➔
                     </Link>
                   </td>
                 </tr>

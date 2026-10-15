@@ -43,12 +43,12 @@ export const POST = api({ permiso: null }, async () => {
   const [agencias]: any = await pool.query('SELECT id, nombre, ciudad FROM agencia');
   const [rutas]: any = await pool.query('SELECT id, nombre FROM ruta');
 
-  const rutaIda = rutas[0];
+  const rutaIda = rutas.find((r: any) => r.nombre.toLowerCase().includes('quito') && r.nombre.toLowerCase().includes('zumba') && !r.nombre.toLowerCase().startsWith('zumba')) || rutas[0];
   let rutaVueltaId = '';
 
-  const [rutasVuelta]: any = await pool.query("SELECT id, nombre FROM ruta WHERE nombre LIKE '%Zumba%Quito%'");
-  if (rutasVuelta.length > 0) {
-    rutaVueltaId = rutasVuelta[0].id;
+  const rutaVuelta = rutas.find((r: any) => r.nombre.toLowerCase().includes('zumba') && r.nombre.toLowerCase().includes('quito') && r.nombre.toLowerCase().startsWith('zumba'));
+  if (rutaVuelta) {
+    rutaVueltaId = rutaVuelta.id;
   } else if (agencias.length >= 3) {
     const [resRuta]: any = await pool.query('SELECT UUID() as id');
     rutaVueltaId = resRuta[0].id;

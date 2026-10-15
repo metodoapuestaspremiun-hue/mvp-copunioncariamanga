@@ -41,8 +41,7 @@ const ROLES: RolInfo[] = [
     roles: [{ rol: 'ayudante', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel' },
-      { href: '/mi-viaje', label: 'Mi Viaje Activo' },
-      { href: '/viajes', label: 'Manifiestos y Carga' },
+      { href: '/viajes', label: 'Viajes y Trazabilidad' },
       { href: '/incidencias', label: 'Incidencias' },
     ],
   },
@@ -54,7 +53,7 @@ const ROLES: RolInfo[] = [
     roles: [{ rol: 'guardia', agenciaId: null }, { rol: 'responsable_agencia', agenciaId: null }, { rol: 'supervisor', agenciaId: null }],
     rutasPermitidas: [
       { href: '/panel', label: 'Panel' },
-      { href: '/mi-viaje', label: 'Mi Viaje Activo' },
+      { href: '/viajes', label: 'Historial de Viajes y QR' },
       { href: '/viajes', label: 'Autorizar Salidas' },
       { href: '/incidencias', label: 'Incidencias' },
     ],
