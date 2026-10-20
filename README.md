@@ -73,8 +73,10 @@ src/app/api/…        31 endpoints          src/app/(app)/…   pantallas      
 db/                  001_init_mvp.sql (esquema) y seed.sql (datos de demo)
 scripts/             db-init, seed-usuarios, reset-demo
 tests/               unit/ · integration/ (BD real) · e2e/smoke-http.mjs
-docs/                especificación v5, enmiendas v5.1 y el Excel de la base del proyecto
+docs/                especificación v5, enmiendas v5.1, actualización v5.2 y flujo operativo
 ```
+
+Consulte [ACTUALIZACION_SISTEMA_V5.2.md](file:///d:/Abel%20paginas/Cooperativa%20Union%20Cariamanga%20MVP/docs/ACTUALIZACION_SISTEMA_V5.2.md) para el detalle completo de las mejoras operativas, trazabilidad por paradas y entrega por PIN de WhatsApp.
 
 ## Límites conocidos del MVP (decisiones, no olvidos)
 - Sin offline (E-01), sin cobros, sin GPS, sin integración con el software actual. Solo excepción tipo A.

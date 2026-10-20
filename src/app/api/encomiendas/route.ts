@@ -3,10 +3,13 @@ import { api } from '@/server/http';
 import { pool } from '@/server/db';
 import { ErrorNegocio } from '@/server/comun';
 import { puede } from '@/shared/permisos';
-import { crearEncomienda, listarEncomiendas } from '@/server/services/encomienda';
+import { crearEncomienda, listarEncomiendas, listarEncomiendasPorViaje } from '@/server/services/encomienda';
 
-export const GET = api({ permiso: null, schema: z.object({ q: z.string().optional() }) },
-  async ({ body }) => listarEncomiendas(pool, body.q));
+export const GET = api({ permiso: null, schema: z.object({ q: z.string().optional(), grouped: z.enum(['true','false']).optional() }) },
+  async ({ body }) => {
+    if (body.grouped === 'true') return listarEncomiendasPorViaje(pool, body.q);
+    return listarEncomiendas(pool, body.q);
+  });
 
 export const POST = api({ permiso: 'encomienda:crear', schema: z.object({
   origenId: z.string(), destinoId: z.string(),
@@ -20,3 +23,4 @@ export const POST = api({ permiso: 'encomienda:crear', schema: z.object({
   if (!puede(user, 'encomienda:crear', body.origenId)) throw new ErrorNegocio('SIN_PERMISO', 'No puedes registrar encomiendas en esa agencia', undefined, 403);
   return crearEncomienda(user.id, body);
 });
+

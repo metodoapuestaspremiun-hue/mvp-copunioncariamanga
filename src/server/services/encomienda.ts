@@ -105,8 +105,19 @@ export async function obtenerEncomienda(db: Db, id: string) {
   if (!e) throw new ErrorNegocio('NO_ENCONTRADA', 'Encomienda no encontrada', undefined, 404);
   const bultos = await q<any>(db, 'SELECT id,numero,qr_token,codigo_legible,peso_g,estado FROM bulto WHERE encomienda_id=? ORDER BY numero', [id]);
   const cot = await q1<any>(db, 'SELECT valor_cent,sin_regla,motivo,detalle, (SELECT etiqueta FROM tarifa_version WHERE id=tarifa_version_id) etiqueta FROM cotizacion WHERE encomienda_id=? LIMIT 1', [id]);
-  return { ...e, bultos, cotizacion: cot ? { ...cot, detalle: pj(cot.detalle) } : null };
+  // Viaje asociado (via manifiesto del bulto más reciente)
+  const viaje = await q1<any>(db,
+    `SELECT vj.id, vj.vehiculo, vj.conductor, vj.estado AS viaje_estado, r.nombre AS ruta_nombre
+       FROM bulto b
+       JOIN manifiesto_item mi ON mi.bulto_id = b.id
+       JOIN manifiesto m        ON m.id = mi.manifiesto_id
+       JOIN viaje vj            ON vj.id = m.viaje_id
+       LEFT JOIN ruta r         ON r.id = vj.ruta_id
+      WHERE b.encomienda_id = ?
+      ORDER BY m.version DESC LIMIT 1`, [id]);
+  return { ...e, bultos, cotizacion: cot ? { ...cot, detalle: pj(cot.detalle) } : null, viaje: viaje ?? null };
 }
+
 
 export async function listarEncomiendas(db: Db, texto?: string) {
   const like = `%${(texto ?? '').trim()}%`;
@@ -116,6 +127,89 @@ export async function listarEncomiendas(db: Db, texto?: string) {
        LEFT JOIN v_encomienda_estado v ON v.id=e.id
       WHERE (? = '%%' OR e.codigo LIKE ? OR e.dest_nombre LIKE ? OR e.remitente_nombre LIKE ?)
       ORDER BY e.creado_at DESC LIMIT 100`, [like, like, like, like]);
+}
+
+/** Devuelve encomiendas agrupadas por viaje. Cada grupo incluye metadata del viaje y la lista de encomiendas. */
+export async function listarEncomiendasPorViaje(db: Db, texto?: string) {
+  const like = `%${(texto ?? '').trim()}%`;
+
+  // Encomiendas con su viaje asociado (el viaje más reciente al que pertenecen sus bultos)
+  const rows = await q<any>(db, `
+    SELECT
+      e.id,
+      e.codigo,
+      e.dest_nombre,
+      e.remitente_nombre,
+      ao.nombre           AS origen,
+      ad.nombre           AS destino,
+      e.creado_at,
+      ves.estado,
+      ves.bultos          AS bultos_count,
+      vj.id               AS viaje_id,
+      vj.vehiculo         AS viaje_vehiculo,
+      vj.conductor        AS viaje_conductor,
+      vj.estado           AS viaje_estado,
+      r.nombre            AS ruta_nombre
+    FROM encomienda e
+    JOIN agencia ao   ON ao.id = e.origen_agencia_id
+    JOIN agencia ad   ON ad.id = e.destino_agencia_id
+    LEFT JOIN v_encomienda_estado ves ON ves.id = e.id
+    LEFT JOIN (
+      SELECT
+        b.encomienda_id,
+        m.viaje_id,
+        ROW_NUMBER() OVER (PARTITION BY b.encomienda_id ORDER BY m.version DESC) rn
+      FROM bulto b
+      JOIN manifiesto_item mi ON mi.bulto_id = b.id
+      JOIN manifiesto m        ON m.id = mi.manifiesto_id
+    ) AS bv ON bv.encomienda_id = e.id AND bv.rn = 1
+    LEFT JOIN viaje vj ON vj.id = bv.viaje_id
+    LEFT JOIN ruta  r  ON r.id  = vj.ruta_id
+    WHERE (? = '%%' OR e.codigo LIKE ? OR e.dest_nombre LIKE ? OR e.remitente_nombre LIKE ?)
+    ORDER BY ISNULL(vj.id) ASC, vj.fecha DESC, e.creado_at DESC
+    LIMIT 500
+  `, [like, like, like, like]);
+
+  // Construir mapa de grupos
+  const gruposMap = new Map<string, {
+    viaje_id: string | null;
+    viaje_vehiculo: string | null;
+    viaje_conductor: string | null;
+    viaje_estado: string | null;
+    ruta_nombre: string | null;
+    encomiendas: any[];
+    total_bultos: number;
+  }>();
+
+  for (const row of rows) {
+    const key = row.viaje_id ?? '__sin_viaje__';
+    if (!gruposMap.has(key)) {
+      gruposMap.set(key, {
+        viaje_id: row.viaje_id ?? null,
+        viaje_vehiculo: row.viaje_vehiculo ?? null,
+        viaje_conductor: row.viaje_conductor ?? null,
+        viaje_estado: row.viaje_estado ?? null,
+        ruta_nombre: row.ruta_nombre ?? null,
+        encomiendas: [],
+        total_bultos: 0,
+      });
+    }
+    const g = gruposMap.get(key)!;
+    g.encomiendas.push({
+      id: row.id,
+      codigo: row.codigo,
+      dest_nombre: row.dest_nombre,
+      remitente_nombre: row.remitente_nombre,
+      origen: row.origen,
+      destino: row.destino,
+      creado_at: row.creado_at,
+      estado: row.estado,
+      bultos: row.bultos_count,
+    });
+    g.total_bultos += Number(row.bultos_count ?? 0);
+  }
+
+  return Array.from(gruposMap.values());
 }
 
 export async function catalogos(db: Db) {

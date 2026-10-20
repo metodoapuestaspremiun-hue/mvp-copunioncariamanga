@@ -1,16 +1,25 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { llamar, nuevoEventId, fmtLegible, fechaEC } from '@/lib/cliente';
 import { Error_, Estado, ResultadoGrande, Scanner } from '@/components/ui';
 import { useUsuario } from '@/components/Sesion';
 import { puede } from '@/shared/permisos';
 
 export default function Parada() {
-  const { id, p } = useParams<{ id: string; p: string }>(); const u = useUsuario(); const orden = Number(p);
-  const [d, setD] = useState<any>(null); const [err, setErr] = useState<any>(null); const [ok, setOk] = useState('');
-  const [modo, setModo] = useState<'carga' | 'descarga'>('carga'); const [res, setRes] = useState<any>(null); const [hist, setHist] = useState<any[]>([]);
+  const { id, p } = useParams<{ id: string; p: string }>();
+  const searchParams = useSearchParams();
+  const u = useUsuario();
+  const orden = Number(p);
+
+  const [d, setD] = useState<any>(null);
+  const [err, setErr] = useState<any>(null);
+  const [ok, setOk] = useState('');
+  const modoInicial = (searchParams.get('modo') === 'descarga') ? 'descarga' : 'carga';
+  const [modo, setModo] = useState<'carga' | 'descarga'>(modoInicial);
+  const [res, setRes] = useState<any>(null);
+  const [hist, setHist] = useState<any[]>([]);
   const [conteo, setConteo] = useState(''); const [usuarios, setUsuarios] = useState<any[]>([]);
   const [exc, setExc] = useState({ motivo: '', solicitadoPor: '' }); const [ocupado, setOcupado] = useState(false);
   const cargar = useCallback(() => llamar(`/api/viajes/${id}/paradas/${p}`).then(setD).catch(setErr), [id, p]);
@@ -62,26 +71,123 @@ export default function Parada() {
         <Col titulo="➡️ Continúan a bordo" rol="continua" />
       </div>
 
-      {puede(u, 'escaneo:operar') && enParada && <div className="card"><h2>Escaneo</h2>
-        <div className="row"><label>Operacion<select value={modo} onChange={e => setModo(e.target.value as any)}><option value="carga">Carga (suben)</option><option value="descarga">Descarga (bajan)</option></select></label></div>
-        <Scanner onCode={escanear} ocupado={ocupado} /><ResultadoGrande r={res} />
-        {hist.length > 0 && <table><tbody>{hist.map((h, i) => <tr key={i}><td className="mono">{fmtLegible(h.codigo ?? '')}</td><td>{h.modo}</td><td>{h.resultado}</td><td className="muted">{h.alerta}</td></tr>)}</tbody></table>}</div>}
+      {puede(u, 'escaneo:operar') && enParada && (
+        <div id="escaneo" className="card" style={{ borderLeft: '4px solid #2563eb' }}>
+          <h2>📷 {modo === 'carga' ? 'Subir Paquetes al Bus (Carga)' : 'Bajar Paquetes del Bus (Descarga)'}</h2>
+          <div className="row" style={{ marginBottom: 12 }}>
+            <label style={{ fontWeight: 700 }}>
+              Operación a realizar:
+              <select
+                value={modo}
+                onChange={e => setModo(e.target.value as any)}
+                style={{ marginLeft: 8, padding: '6px 12px', fontSize: 13, fontWeight: 700 }}
+              >
+                <option value="carga">⬆️ Subir Paquetes (Carga a bordo)</option>
+                <option value="descarga">⬇️ Bajar Paquetes (Descarga en parada)</option>
+              </select>
+            </label>
+          </div>
+          <Scanner onCode={escanear} ocupado={ocupado} />
+          <ResultadoGrande r={res} />
+          {hist.length > 0 && (
+            <table style={{ marginTop: 12 }}>
+              <tbody>
+                {hist.map((h, i) => (
+                  <tr key={i}>
+                    <td className="mono">{fmtLegible(h.codigo ?? '')}</td>
+                    <td><b>{h.modo === 'carga' ? '⬆️ Subido' : '⬇️ Bajado'}</b></td>
+                    <td>{h.resultado}</td>
+                    <td className="muted">{h.alerta}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
-      {puede(u, 'conteo:continuan') && continuan > 0 && enParada && <div className="card"><h2>Conteo de los que continuan a bordo</h2>
-        <p className="muted">Cuenta con tus ojos los paquetes que siguen en el bus (el sistema espera {continuan}). Conteo registrado: <b>{d.conteo ?? 'ninguno'}</b></p>
-        <div className="row"><label>Cantidad contada<input type="number" min={0} value={conteo} onChange={e => setConteo(e.target.value)} /></label>
-          <button onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/conteo`, 'POST', { conteo: parseInt(conteo || '0') }), 'Conteo registrado')} disabled={conteo === ''}>Registrar conteo</button></div></div>}
+      {puede(u, 'conteo:continuan') && continuan > 0 && enParada && (
+        <div className="card">
+          <h2>Conteo de los que continúan a bordo</h2>
+          <p className="muted">
+            Cuenta visualmente los paquetes que siguen en el bus (el sistema espera {continuan}). Conteo registrado: <b>{d.conteo ?? 'ninguno'}</b>
+          </p>
+          <div className="row">
+            <label>
+              Cantidad contada
+              <input type="number" min={0} value={conteo} onChange={e => setConteo(e.target.value)} />
+            </label>
+            <button
+              onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/conteo`, 'POST', { conteo: parseInt(conteo || '0') }), 'Conteo registrado')}
+              disabled={conteo === ''}
+            >
+              Registrar conteo
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="card"><h2>Salida de esta parada</h2>
-        {ev.normalPermitida ? <div className="okmsg">La carga concilia con el manifiesto. Se esperan {ev.esperadoABordo} paquete(s) a bordo al salir.</div>
-          : <div className="err"><b>Salida bloqueada</b>{ev.mensajes.map((m: string, i: number) => <div key={i}>• {m}</div>)}</div>}
-        {aut ? <p>Autorizacion vigente ({aut.tipo}) {fechaEC(aut.autorizado_at)} {aut.salida_real_at ? <b>· SALIDA REGISTRADA {fechaEC(aut.salida_real_at)}</b> : ''}</p> : <p className="muted">Sin autorizacion vigente.</p>}
-        {enParada && !aut && puede(u, 'salida:autorizar') && <button className="verde" disabled={!ev.normalPermitida} onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'normal' }), 'Salida autorizada')}>Autorizar salida</button>}
-        {enParada && !aut && !ev.normalPermitida && ev.excepcionPermitida === 'A' && puede(u, 'excepcion:autorizar') && <div className="card" style={{ marginTop: 10 }}><h2>Excepcion A (supervisor)</h2>
-          <div className="row"><label>Motivo (obligatorio)<input value={exc.motivo} onChange={e => setExc({ ...exc, motivo: e.target.value })} /></label>
-            <label>Quien solicita la excepcion (otra persona)<select value={exc.solicitadoPor} onChange={e => setExc({ ...exc, solicitadoPor: e.target.value })}><option value="">-- elegir --</option>{usuarios.filter(x => x.id !== u.id).map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select></label>
-            <button className="rojo" disabled={!exc.motivo.trim() || !exc.solicitadoPor} onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'excepcion_a', ...exc }), 'Excepcion autorizada')}>Autorizar con excepcion</button></div></div>}
-        {enParada && aut && !aut.salida_real_at && puede(u, 'salida:registrar_real') && <button onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/salida-real`, 'POST'), 'Salida real registrada: el bus salio')}>Registrar salida real</button>}
+      <div id="salida" className="card" style={{ borderLeft: '4px solid #10b981' }}>
+        <h2>🚀 Autorización de Partida y Salida del Bus</h2>
+        {ev.normalPermitida ? (
+          <div className="okmsg">✓ La carga concilia con el manifiesto. Se esperan {ev.esperadoABordo} paquete(s) a bordo al partir.</div>
+        ) : (
+          <div className="err">
+            <b>Salida bloqueada</b>
+            {ev.mensajes.map((m: string, i: number) => <div key={i}>• {m}</div>)}
+          </div>
+        )}
+        {aut ? (
+          <p style={{ marginTop: 10 }}>
+            Autorización vigente ({aut.tipo}) {fechaEC(aut.autorizado_at)}{' '}
+            {aut.salida_real_at ? <b>· SALIDA OFICIAL REGISTRADA {fechaEC(aut.salida_real_at)}</b> : ''}
+          </p>
+        ) : (
+          <p className="muted" style={{ marginTop: 10 }}>Sin autorización vigente de salida.</p>
+        )}
+        {enParada && !aut && puede(u, 'salida:autorizar') && (
+          <button
+            className="verde"
+            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700 }}
+            disabled={!ev.normalPermitida}
+            onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'normal' }), 'Salida autorizada')}
+          >
+            ✓ Autorizar partida del bus
+          </button>
+        )}
+        {enParada && !aut && !ev.normalPermitida && ev.excepcionPermitida === 'A' && puede(u, 'excepcion:autorizar') && (
+          <div className="card" style={{ marginTop: 10 }}>
+            <h2>Excepción A (supervisor)</h2>
+            <div className="row">
+              <label>
+                Motivo (obligatorio)
+                <input value={exc.motivo} onChange={e => setExc({ ...exc, motivo: e.target.value })} />
+              </label>
+              <label>
+                Quién solicita la excepción (otra persona)
+                <select value={exc.solicitadoPor} onChange={e => setExc({ ...exc, solicitadoPor: e.target.value })}>
+                  <option value="">-- elegir --</option>
+                  {usuarios.filter(x => x.id !== u.id).map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                </select>
+              </label>
+              <button
+                className="rojo"
+                disabled={!exc.motivo.trim() || !exc.solicitadoPor}
+                onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'excepcion_a', ...exc }), 'Excepción autorizada')}
+              >
+                Autorizar con excepción
+              </button>
+            </div>
+          </div>
+        )}
+        {enParada && aut && !aut.salida_real_at && puede(u, 'salida:registrar_real') && (
+          <button
+            onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/salida-real`, 'POST'), 'Salida real registrada: el bus partió')}
+            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700 }}
+          >
+            Registrar partida real del bus
+          </button>
+        )}
       </div>
 
       <div className="card"><h2>Incidencias abiertas del viaje ({d.incidencias.length})</h2>

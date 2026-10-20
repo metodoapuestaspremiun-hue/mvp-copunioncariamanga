@@ -6,8 +6,8 @@ import { ErrorNegocio } from '@/server/comun';
 // Las 4 cuentas simples con sus contraseñas
 const CUENTAS: Record<string, { rolId: string; nombre: string; rolDesc: string }> = {
   'ventanilla1.': { rolId: 'operador', nombre: 'Operador de Ventanilla', rolDesc: 'Ventanilla y Encomiendas' },
-  'ayudantebus1.': { rolId: 'ayudante', nombre: 'Ayudante de Bus', rolDesc: 'Manifiestos y Escaneo' },
-  'conductor1.': { rolId: 'guardia', nombre: 'Conductor / Control Salida', rolDesc: 'Control y Salida' },
+  'ayudantebus1.': { rolId: 'guardia', nombre: 'Conductor / Tripulación de Bus', rolDesc: 'Escaneo de Carga y Autorización de Salida' },
+  'conductor1.': { rolId: 'guardia', nombre: 'Conductor / Tripulación de Bus', rolDesc: 'Escaneo de Carga y Autorización de Salida' },
   'gerencia1.': { rolId: 'gerente', nombre: 'Gerencia General', rolDesc: 'Supervisión y Reportes' },
 };
 

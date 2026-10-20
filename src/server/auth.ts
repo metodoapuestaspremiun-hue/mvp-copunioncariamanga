@@ -68,15 +68,21 @@ const ROL_CONFIG: Record<string, { nombre: string; email: string; roles: { rol: 
     roles: [{ rol: 'despachador', agenciaId: null }],
   },
   ayudante: {
-    nombre: 'Ayudante de Bus',
-    email: 'ayudante@demo.local',
-    roles: [{ rol: 'ayudante', agenciaId: null }],
-  },
-  guardia: {
-    nombre: 'Conductor / Control Salida',
+    nombre: 'Conductor / Tripulación de Bus',
     email: 'guardia@demo.local',
     roles: [
       { rol: 'guardia', agenciaId: null },
+      { rol: 'ayudante', agenciaId: null },
+      { rol: 'responsable_agencia', agenciaId: null },
+      { rol: 'supervisor', agenciaId: null },
+    ],
+  },
+  guardia: {
+    nombre: 'Conductor / Tripulación de Bus',
+    email: 'guardia@demo.local',
+    roles: [
+      { rol: 'guardia', agenciaId: null },
+      { rol: 'ayudante', agenciaId: null },
       { rol: 'responsable_agencia', agenciaId: null },
       { rol: 'supervisor', agenciaId: null },
     ],

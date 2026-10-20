@@ -15,7 +15,22 @@ export async function panel(db: Db) {
       WHERE v.estado IN ('disponible_retiro','parcialmente_disponible') ORDER BY e.creado_at DESC LIMIT 20`);
   const sinViaje = await q1<any>(db, "SELECT COUNT(*) n FROM bulto WHERE estado='registrado'");
   const porRecibir = await q<any>(db, `SELECT b.id,b.codigo_legible,e.codigo enc_codigo,a.nombre agencia FROM bulto b JOIN encomienda e ON e.id=b.encomienda_id LEFT JOIN agencia a ON a.id=b.agencia_custodia_id WHERE b.estado='descargado' LIMIT 20`);
-  const viajes = await q<any>(db, "SELECT v.id,v.vehiculo,v.estado,v.parada_actual,r.nombre ruta FROM viaje v JOIN ruta r ON r.id=v.ruta_id WHERE v.estado<>'cerrado' ORDER BY v.fecha DESC LIMIT 10");
+  const viajes = await q<any>(db,
+    `SELECT v.id, v.vehiculo, v.estado, v.parada_actual, v.conductor, v.ayudante,
+            r.nombre AS ruta,
+            p.nombre AS parada_nombre,
+            (SELECT COUNT(*) FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id
+              WHERE m.viaje_id=v.id AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items,
+            (SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id AND cerrado_at IS NOT NULL) AS version_cerrada,
+            (SELECT COUNT(*) FROM manifiesto WHERE viaje_id=v.id AND cerrado_at IS NOT NULL) AS tiene_manifiesto_cerrado,
+            (SELECT COUNT(*) FROM autorizacion_salida a WHERE a.viaje_id=v.id AND a.parada_orden=v.parada_actual AND a.invalidada_at IS NULL) AS autorizada_salida,
+            (SELECT COUNT(*) FROM autorizacion_salida a WHERE a.viaje_id=v.id AND a.parada_orden=v.parada_actual AND a.salida_real_at IS NOT NULL) AS salida_real_registrada
+       FROM viaje v
+       JOIN ruta r ON r.id = v.ruta_id
+  LEFT JOIN parada p ON p.ruta_id = v.ruta_id AND p.orden = v.parada_actual
+      WHERE v.estado <> 'cerrado'
+      ORDER BY (items > 0) DESC, v.fecha DESC, v.id DESC
+      LIMIT 15`);
   const excepciones = await q<any>(db,
     `SELECT a.id,a.autorizado_at,a.motivo,a.viaje_id,a.parada_orden,u.nombre autorizado_por FROM autorizacion_salida a JOIN usuario u ON u.id=a.autorizado_por
       WHERE a.tipo='excepcion_a' ORDER BY a.autorizado_at DESC LIMIT 10`);

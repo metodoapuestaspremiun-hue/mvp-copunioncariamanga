@@ -60,8 +60,9 @@ export default function Panel() {
           <h1>
             <span>
               {puede(u, 'encomienda:crear') ? 'Panel Operativo de Ventanilla' :
-               puede(u, 'salida:autorizar') ? 'Panel de Conductor y Control de Salidas' :
-               puede(u, 'escaneo:operar') ? 'Panel de Control de Bus y Manifiestos' :
+               (puede(u, 'salida:autorizar') && puede(u, 'escaneo:operar')) ? 'Panel de Conductor / Tripulación de Bus' :
+               puede(u, 'salida:autorizar') ? 'Panel de Conductor y Salidas' :
+               puede(u, 'escaneo:operar') ? 'Panel de Tripulación y Escaneo' :
                'Panel Operativo General'}
             </span>
           </h1>
@@ -86,6 +87,160 @@ export default function Panel() {
       </div>
 
       <Error_ e={err} />
+
+      {/* SECCIÓN TRIPULACIÓN: VIAJES LISTOS CON MANIFIESTO CERRADO (EXCLUSIVO TRIPULACIÓN/CONDUCTOR) */}
+      {(() => {
+        // Solo para Conductor / Tripulación de Bus (no para operador de ventanilla)
+        const esTripulacion = !puede(u, 'encomienda:crear') && (puede(u, 'salida:autorizar') || puede(u, 'escaneo:operar'));
+        if (!esTripulacion) return null;
+
+        const viajesConCarga = (d.viajes || []).filter(
+          (v: any) => Number(v.items) > 0 || Number(v.tiene_manifiesto_cerrado) > 0
+        );
+        if (!viajesConCarga.length) return null;
+
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e3a8a' }}>
+                <span style={{ fontSize: 18 }}>🚍</span>
+                <span>Turnos Listos para Carga y Salida — Manifiestos Oficiales</span>
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#2563eb' }}>
+                {viajesConCarga.length} unidad(es) asignadas
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+              {viajesConCarga.map((v: any) => {
+                const tieneCerrado = Number(v.tiene_manifiesto_cerrado) > 0;
+                const autorizada   = Number(v.autorizada_salida) > 0;
+                const paradaNum    = v.parada_actual || 1;
+                const linkEscanear = `/viajes/${v.id}/paradas/${paradaNum}`;
+                const linkViaje    = `/viajes/${v.id}`;
+
+                return (
+                  <div
+                    key={v.id}
+                    className="card"
+                    style={{
+                      margin: 0,
+                      padding: '16px 18px',
+                      background: tieneCerrado ? 'linear-gradient(145deg, #ffffff, #f0f7ff)' : '#ffffff',
+                      border: tieneCerrado ? '1.5px solid #93c5fd' : '1px solid #e2e8f0',
+                      boxShadow: tieneCerrado ? '0 4px 15px rgba(37, 99, 235, 0.08)' : undefined,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 18 }}>🚌</span>
+                          <Link href={linkViaje} style={{ fontWeight: 800, fontSize: 16, color: '#1e3a8a', textDecoration: 'none' }}>
+                            {v.vehiculo}
+                          </Link>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#475569', marginTop: 3 }}>
+                          <b>Ruta:</b> {v.ruta} · 📍 <b>Parada #{paradaNum}:</b> {v.parada_nombre || `Parada ${paradaNum}`}
+                        </div>
+                        {v.conductor && (
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                            👤 <b>Chofer:</b> {v.conductor} {v.ayudante ? `· Ayudante: ${v.ayudante}` : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        {tieneCerrado ? (
+                          <span className="tag verde" style={{ fontSize: 11, fontWeight: 700 }}>
+                            ✓ Manifiesto cerrado
+                          </span>
+                        ) : (
+                          <span className="tag amarillo" style={{ fontSize: 11 }}>
+                            Borrador
+                          </span>
+                        )}
+                        <div style={{ marginTop: 4, fontWeight: 800, fontSize: 13, color: '#1e40af' }}>
+                          📦 {v.items ?? 0} paquetes
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botones de acción directa para Chofer y Ayudante */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                      <Link
+                        href={`${linkEscanear}?modo=carga`}
+                        className="btn"
+                        style={{
+                          flex: '1 1 140px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          padding: '8px 12px',
+                          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: 8,
+                          textDecoration: 'none',
+                          boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                        }}
+                        title="Subir paquetes al bus (carga de encomiendas)"
+                      >
+                        <span>⬆️ Subir Paquetes (Cargar)</span>
+                      </Link>
+
+                      <Link
+                        href={`${linkEscanear}?modo=descarga`}
+                        className="btn sec"
+                        style={{
+                          flex: '1 1 140px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          textDecoration: 'none',
+                        }}
+                        title="Bajar paquetes del bus (descarga en parada o destino)"
+                      >
+                        <span>⬇️ Bajar Paquetes (Descargar)</span>
+                      </Link>
+
+                      <Link
+                        href={`${linkEscanear}#salida`}
+                        className="btn"
+                        style={{
+                          flex: '1 1 100%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          padding: '9px 12px',
+                          background: autorizada ? '#10b981' : '#0f172a',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: 8,
+                          textDecoration: 'none',
+                        }}
+                        title="Autorizar partida del bus tras verificar la carga"
+                      >
+                        <span>{autorizada ? '✓ Salida Autorizada (Listo para Partir)' : '🚀 Autorizar Partida del Bus'}</span>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* SECCIÓN 1: ACCESO RÁPIDO / METRIC CARDS */}
       <div className="dash-section-title">
@@ -492,24 +647,78 @@ export default function Panel() {
           </div>
           <div className="tabla-scroll">
             <table className="tabla-fija">
-              <thead><tr><th>Unidad / Bus</th><th>Ruta Asignada</th><th>Estado</th><th>Parada Actual</th><th>Acción</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Unidad / Bus</th>
+                  <th>Ruta Asignada</th>
+                  <th>Tripulación</th>
+                  <th>Paquetes</th>
+                  <th>Parada Actual</th>
+                  <th>Estado</th>
+                  <th style={{ minWidth: 160 }}>Acciones Rápidas</th>
+                </tr>
+              </thead>
               <tbody>
-                {d.viajes.map((v: any) => (
-                  <tr key={v.id}>
-                    <td style={{ fontSize: '15px' }}><Link href={'/viajes/' + v.id}><b>{v.vehiculo}</b></Link></td>
-                    <td><b>{v.ruta}</b></td>
-                    <td><span className={`tag ${v.estado === 'en_ruta' ? 'verde' : ''}`}>{v.estado}</span></td>
-                    <td>Parada #{v.parada_actual}</td>
-                    <td>
-                      <Link href={'/viajes/' + v.id} className="btn sec" style={{ padding: '3px 10px', fontSize: '12px' }}>
-                        Manifiesto
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {d.viajes.map((v: any) => {
+                  const paradaNum = v.parada_actual || 1;
+                  return (
+                    <tr key={v.id}>
+                      <td style={{ fontSize: '15px' }}>
+                        <Link href={'/viajes/' + v.id}><b>{v.vehiculo}</b></Link>
+                      </td>
+                      <td><b>{v.ruta}</b></td>
+                      <td style={{ fontSize: '12.5px', color: '#475569' }}>
+                        {v.conductor ? <div>👤 {v.conductor}</div> : <span className="muted">Sin chofer</span>}
+                      </td>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          padding: '2px 8px', borderRadius: 999, fontWeight: 700, fontSize: 12,
+                          background: Number(v.items) > 0 ? '#eff6ff' : '#f1f5f9',
+                          color: Number(v.items) > 0 ? '#1d4ed8' : '#64748b',
+                        }}>
+                          📦 {v.items ?? 0}
+                        </span>
+                      </td>
+                      <td>Parada #{paradaNum} {v.parada_nombre ? `(${v.parada_nombre})` : ''}</td>
+                      <td>
+                        <span className={`tag ${v.estado === 'en_ruta' ? 'verde' : ''}`}>
+                          {v.estado}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <Link
+                            href={`/viajes/${v.id}/paradas/${paradaNum}?modo=carga`}
+                            className="btn"
+                            style={{ padding: '3px 8px', fontSize: '11.5px', background: '#2563eb', color: '#fff', border: 'none' }}
+                            title="Subir paquetes a bordo en esta parada"
+                          >
+                            ⬆️ Subir
+                          </Link>
+                          <Link
+                            href={`/viajes/${v.id}/paradas/${paradaNum}#salida`}
+                            className="btn"
+                            style={{ padding: '3px 8px', fontSize: '11.5px', background: '#0f172a', color: '#fff', border: 'none' }}
+                            title="Verificar y autorizar partida del bus"
+                          >
+                            🚀 Salida
+                          </Link>
+                          <Link
+                            href={`/viajes/${v.id}`}
+                            className="btn sec"
+                            style={{ padding: '3px 8px', fontSize: '11.5px' }}
+                          >
+                            Manifiesto
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!d.viajes.length && (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}>
                       No hay viajes activos programados actualmente.
                     </td>
                   </tr>

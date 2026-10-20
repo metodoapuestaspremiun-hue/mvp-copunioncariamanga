@@ -6,8 +6,7 @@ import { Error_ } from '@/components/ui';
 
 const PERFILES_INFO = [
   { clave: 'ventanilla1.', nombre: 'Operador Ventanilla', icono: '🏢', desc: 'Crea encomiendas, asigna viajes y entrega' },
-  { clave: 'ayudantebus1.', nombre: 'Ayudante de Bus', icono: '🚌', desc: 'Revisa manifiesto y escanea paquetes' },
-  { clave: 'conductor1.', nombre: 'Conductor / Control Salida', icono: '🛡️', desc: 'Verifica carga y autoriza salida' },
+  { clave: 'conductor1.', nombre: 'Conductor / Tripulación de Bus', icono: '🚍', desc: 'Escanea paquetes (subir/bajar) y autoriza salida' },
   { clave: 'gerencia1.', nombre: 'Gerencia General', icono: '📊', desc: 'Gestión de viajes y métricas globales' },
 ];
 
