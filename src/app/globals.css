@@ -63,9 +63,23 @@ a:hover { color: #1e3a8a; text-decoration: underline; }
 }
 
 main {
-  max-width: 100%;
-  padding: 22px 28px 60px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 30px 40px 70px;
   width: 100%;
+}
+
+@media (min-width: 1600px) {
+  main {
+    max-width: 1620px;
+    padding: 36px 56px 80px;
+  }
+}
+
+@media (max-width: 1024px) {
+  main {
+    padding: 20px 24px 60px;
+  }
 }
 
 h1 {
@@ -507,7 +521,7 @@ nav.top-header {
   flex-direction: row;
   align-items: center;
   gap: 14px;
-  padding: 12px 24px;
+  padding: 12px 36px;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -673,7 +687,7 @@ nav.top-header .brand {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 320px;
+  width: 340px;
   max-width: 85vw;
   height: 100vh;
   z-index: 999;
