@@ -146,4 +146,21 @@ Se consolidaron los perfiles operativos de tripulación móvil para máxima efic
   * Selector para alternar rápidamente entre "Solo con Encomiendas" y "Todos los Turnos".
   * Acciones inmediatas `📷 Escanear` y `Trazabilidad ➔` en cada fila de viaje.
 
+---
+
+## 8. 📱 Optimización de la Pantalla de Parada y Flujo Móvil (`/paradas/[p]`) — v5.5
+
+Se reorganizó por completo la disposición de elementos en la pantalla de parada para máxima usabilidad en dispositivos móviles y andén:
+
+* **1. Autorización de Partida y Salida (Arriba del Todo):**
+  * Ubicada como primer elemento visible, mostrando el estado de conciliación de carga, si la salida está permitida o bloqueada (con los motivos detallados) y el botón directo de autorización oficial.
+* **2. Operación de Paquetes (En el Medio):**
+  * **Botones alineados en la misma fila (modo móvil):** `⬆️ Subir Paquetes (Cargar)` y `⬇️ Bajar Paquetes (Descargar)` configurados en grid `1fr 1fr` para no apilarse verticalmente en celulares y aprovechar el espacio en pantalla.
+  * **Cámara de Escaneo por encima del input:** Botón grande y destacado `📷 Escanear con Cámara (Abrir Lector QR)` ubicado directamente encima del campo de texto de código, permitiendo activar la cámara con un solo toque antes de escribir manualmente.
+* **3. Resumen de Bultos y Conteo a Bordo (Al Final):**
+  * Las tres columnas (`⬇️ Bajan aquí`, `⬆️ Suben aquí`, `➡️ Continúan a bordo`) reubicadas debajo de la zona de escaneo para consulta rápida sin estorbar la lectura del código.
+* **4. Depuración Automática del Panel:**
+  * Los viajes cuyos paquetes ya hayan sido entregados o concluidos salen automáticamente de las alertas activas del panel, permaneciendo en el historial general.
+
+
 

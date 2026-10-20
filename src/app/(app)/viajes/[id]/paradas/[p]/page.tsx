@@ -65,46 +65,201 @@ export default function Parada() {
         </div>
       )}
       <Error_ e={err} />{ok && <div className="okmsg">{ok}</div>}
+
+      {/* ── 1. PRIMER ELEMENTO (ARRIBA DEL TODO): AUTORIZACIÓN DE PARTIDA Y SALIDA DEL BUS ── */}
+      <div id="salida" className="card" style={{ borderLeft: '5px solid #10b981', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.12)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 18 }}>
+            <span>🚀 Autorización de Partida y Salida del Bus</span>
+          </h2>
+          {aut && (
+            <span className="tag verde" style={{ fontWeight: 700 }}>
+              ✓ Salida autorizada ({aut.tipo})
+            </span>
+          )}
+        </div>
+
+        {ev.normalPermitida ? (
+          <div className="okmsg" style={{ margin: '8px 0 12px' }}>
+            ✓ <b>La carga concilia con el manifiesto.</b> Se esperan {ev.esperadoABordo} paquete(s) a bordo al partir.
+          </div>
+        ) : (
+          <div className="err" style={{ margin: '8px 0 12px' }}>
+            <b style={{ fontSize: 14 }}>Salida bloqueada</b>
+            {ev.mensajes.map((m: string, i: number) => (
+              <div key={i} style={{ marginTop: 3 }}>• {m}</div>
+            ))}
+          </div>
+        )}
+
+        {aut ? (
+          <p style={{ margin: '6px 0 12px', fontSize: 13 }}>
+            Autorización vigente ({aut.tipo}) {fechaEC(aut.autorizado_at)}{' '}
+            {aut.salida_real_at ? <b>· SALIDA OFICIAL REGISTRADA {fechaEC(aut.salida_real_at)}</b> : ''}
+          </p>
+        ) : (
+          <p className="muted" style={{ margin: '6px 0 12px', fontSize: 13 }}>Sin autorización vigente de salida.</p>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {enParada && !aut && puede(u, 'salida:autorizar') && (
+            <button
+              className="verde"
+              style={{
+                padding: '12px 22px', fontSize: 15, fontWeight: 800,
+                boxShadow: ev.normalPermitida ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+              }}
+              disabled={!ev.normalPermitida}
+              onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'normal' }), 'Salida autorizada')}
+            >
+              ✓ Autorizar partida del bus
+            </button>
+          )}
+
+          {enParada && aut && !aut.salida_real_at && puede(u, 'salida:registrar_real') && (
+            <button
+              onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/salida-real`, 'POST'), 'Salida real registrada: el bus partió')}
+              style={{ padding: '12px 22px', fontSize: 15, fontWeight: 800, background: '#0f172a', color: '#fff', border: 'none', borderRadius: 8 }}
+            >
+              🚀 Registrar partida real del bus
+            </button>
+          )}
+        </div>
+
+        {enParada && !aut && !ev.normalPermitida && ev.excepcionPermitida === 'A' && puede(u, 'excepcion:autorizar') && (
+          <div className="card" style={{ marginTop: 14, background: '#fff1f2', border: '1px solid #fecdd3' }}>
+            <h2 style={{ fontSize: 14, color: '#9f1239', margin: '0 0 8px' }}>Excepción A (Supervisor)</h2>
+            <div className="row">
+              <label style={{ fontSize: 13 }}>
+                Motivo (obligatorio)
+                <input value={exc.motivo} onChange={e => setExc({ ...exc, motivo: e.target.value })} placeholder="Ej: paquete retrasado en bodega" />
+              </label>
+              <label style={{ fontSize: 13 }}>
+                Quién solicita la excepción
+                <select value={exc.solicitadoPor} onChange={e => setExc({ ...exc, solicitadoPor: e.target.value })}>
+                  <option value="">-- elegir personal --</option>
+                  {usuarios.filter(x => x.id !== u.id).map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                </select>
+              </label>
+              <button
+                className="rojo"
+                disabled={!exc.motivo.trim() || !exc.solicitadoPor}
+                onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'excepcion_a', ...exc }), 'Excepción autorizada')}
+              >
+                Autorizar con excepción
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 2. SEGUNDO ELEMENTO (EN EL MEDIO): OPERACIÓN DE PAQUETES CON 2 BOTONES VISIBLES ── */}
+      {puede(u, 'escaneo:operar') && enParada && (
+        <div id="escaneo" className="card" style={{ borderLeft: '5px solid #2563eb', boxShadow: '0 4px 15px rgba(37, 99, 235, 0.10)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18, color: '#1e3a8a' }}>
+                📷 {modo === 'carga' ? 'Subir Paquetes al Bus (Carga)' : 'Bajar Paquetes del Bus (Descarga)'}
+              </h2>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>
+                Selecciona la acción y luego escanea cada bulto (o digita su código) para registrarlo de inmediato.
+              </p>
+            </div>
+          </div>
+
+          {/* Selector de operación con 2 BOTONES EN LA MISMA FILA (modo móvil y escritorio) */}
+          <div style={{ margin: '12px 0 16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: 8, textAlign: 'center' }}>
+              Selecciona la operación que vas a realizar:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setModo('carga')}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  padding: '12px 8px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                  border: modo === 'carga' ? '2.5px solid #2563eb' : '1.5px solid #cbd5e1',
+                  background: modo === 'carga' ? '#eff6ff' : '#ffffff',
+                  color: modo === 'carga' ? '#1d4ed8' : '#475569',
+                  boxShadow: modo === 'carga' ? '0 4px 12px rgba(37, 99, 235, 0.20)' : 'none',
+                  transition: 'all 0.15s ease',
+                  minWidth: 0,
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>⬆️</span>
+                <div style={{ minWidth: 0, width: '100%' }}>
+                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Subir Paquetes</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: modo === 'carga' ? '#2563eb' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Cargar ({lista('sube').length})
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModo('descarga')}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  padding: '12px 8px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                  border: modo === 'descarga' ? '2.5px solid #d97706' : '1.5px solid #cbd5e1',
+                  background: modo === 'descarga' ? '#fffbeb' : '#ffffff',
+                  color: modo === 'descarga' ? '#b45309' : '#475569',
+                  boxShadow: modo === 'descarga' ? '0 4px 12px rgba(217, 119, 6, 0.20)' : 'none',
+                  transition: 'all 0.15s ease',
+                  minWidth: 0,
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>⬇️</span>
+                <div style={{ minWidth: 0, width: '100%' }}>
+                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Bajar Paquetes</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: modo === 'descarga' ? '#d97706' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Descargar ({lista('baja').length})
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <Scanner onCode={escanear} ocupado={ocupado} />
+          <ResultadoGrande r={res} />
+
+          {hist.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>
+                Últimos escaneos realizados en esta sesión:
+              </div>
+              <div className="tabla-scroll">
+                <table>
+                  <tbody>
+                    {hist.map((h, i) => (
+                      <tr key={i}>
+                        <td className="mono" style={{ fontWeight: 700 }}>{fmtLegible(h.codigo ?? '')}</td>
+                        <td><b>{h.modo === 'carga' ? '⬆️ Subido (Cargado)' : '⬇️ Bajado (Descargado)'}</b></td>
+                        <td>
+                          <span className={`tag ${h.resultado === 'ok' ? 'verde' : 'rojo'}`}>
+                            {h.resultado === 'ok' ? '✓ Correcto' : h.resultado}
+                          </span>
+                        </td>
+                        <td className="muted">{h.alerta}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── 3. TERCER ELEMENTO: RESUMEN DE PAQUETES (BAJAN, SUBEN, CONTINÚAN) ── */}
       <div className="grid">
         <Col titulo="⬇️ Bajan aquí" rol="baja" />
         <Col titulo="⬆️ Suben aquí" rol="sube" />
         <Col titulo="➡️ Continúan a bordo" rol="continua" />
       </div>
-
-      {puede(u, 'escaneo:operar') && enParada && (
-        <div id="escaneo" className="card" style={{ borderLeft: '4px solid #2563eb' }}>
-          <h2>📷 {modo === 'carga' ? 'Subir Paquetes al Bus (Carga)' : 'Bajar Paquetes del Bus (Descarga)'}</h2>
-          <div className="row" style={{ marginBottom: 12 }}>
-            <label style={{ fontWeight: 700 }}>
-              Operación a realizar:
-              <select
-                value={modo}
-                onChange={e => setModo(e.target.value as any)}
-                style={{ marginLeft: 8, padding: '6px 12px', fontSize: 13, fontWeight: 700 }}
-              >
-                <option value="carga">⬆️ Subir Paquetes (Carga a bordo)</option>
-                <option value="descarga">⬇️ Bajar Paquetes (Descarga en parada)</option>
-              </select>
-            </label>
-          </div>
-          <Scanner onCode={escanear} ocupado={ocupado} />
-          <ResultadoGrande r={res} />
-          {hist.length > 0 && (
-            <table style={{ marginTop: 12 }}>
-              <tbody>
-                {hist.map((h, i) => (
-                  <tr key={i}>
-                    <td className="mono">{fmtLegible(h.codigo ?? '')}</td>
-                    <td><b>{h.modo === 'carga' ? '⬆️ Subido' : '⬇️ Bajado'}</b></td>
-                    <td>{h.resultado}</td>
-                    <td className="muted">{h.alerta}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
 
       {puede(u, 'conteo:continuan') && continuan > 0 && enParada && (
         <div className="card">
@@ -127,72 +282,44 @@ export default function Parada() {
         </div>
       )}
 
-      <div id="salida" className="card" style={{ borderLeft: '4px solid #10b981' }}>
-        <h2>🚀 Autorización de Partida y Salida del Bus</h2>
-        {ev.normalPermitida ? (
-          <div className="okmsg">✓ La carga concilia con el manifiesto. Se esperan {ev.esperadoABordo} paquete(s) a bordo al partir.</div>
-        ) : (
-          <div className="err">
-            <b>Salida bloqueada</b>
-            {ev.mensajes.map((m: string, i: number) => <div key={i}>• {m}</div>)}
-          </div>
-        )}
-        {aut ? (
-          <p style={{ marginTop: 10 }}>
-            Autorización vigente ({aut.tipo}) {fechaEC(aut.autorizado_at)}{' '}
-            {aut.salida_real_at ? <b>· SALIDA OFICIAL REGISTRADA {fechaEC(aut.salida_real_at)}</b> : ''}
-          </p>
-        ) : (
-          <p className="muted" style={{ marginTop: 10 }}>Sin autorización vigente de salida.</p>
-        )}
-        {enParada && !aut && puede(u, 'salida:autorizar') && (
-          <button
-            className="verde"
-            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700 }}
-            disabled={!ev.normalPermitida}
-            onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'normal' }), 'Salida autorizada')}
-          >
-            ✓ Autorizar partida del bus
-          </button>
-        )}
-        {enParada && !aut && !ev.normalPermitida && ev.excepcionPermitida === 'A' && puede(u, 'excepcion:autorizar') && (
-          <div className="card" style={{ marginTop: 10 }}>
-            <h2>Excepción A (supervisor)</h2>
-            <div className="row">
-              <label>
-                Motivo (obligatorio)
-                <input value={exc.motivo} onChange={e => setExc({ ...exc, motivo: e.target.value })} />
-              </label>
-              <label>
-                Quién solicita la excepción (otra persona)
-                <select value={exc.solicitadoPor} onChange={e => setExc({ ...exc, solicitadoPor: e.target.value })}>
-                  <option value="">-- elegir --</option>
-                  {usuarios.filter(x => x.id !== u.id).map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                </select>
-              </label>
-              <button
-                className="rojo"
-                disabled={!exc.motivo.trim() || !exc.solicitadoPor}
-                onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/autorizar`, 'POST', { tipo: 'excepcion_a', ...exc }), 'Excepción autorizada')}
-              >
-                Autorizar con excepción
-              </button>
-            </div>
-          </div>
-        )}
-        {enParada && aut && !aut.salida_real_at && puede(u, 'salida:registrar_real') && (
-          <button
-            onClick={() => act(() => llamar(`/api/viajes/${id}/paradas/${p}/salida-real`, 'POST'), 'Salida real registrada: el bus partió')}
-            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700 }}
-          >
-            Registrar partida real del bus
-          </button>
-        )}
+      {/* ── 4. CUARTO ELEMENTO (ÚLTIMO): INCIDENCIAS ABIERTAS DEL VIAJE ── */}
+      <div className="card">
+        <h2>Incidencias abiertas del viaje ({d.incidencias.length})</h2>
+        <table>
+          <tbody>
+            {d.incidencias.map((i: any) => (
+              <tr key={i.id}>
+                <td><span className="tag rojo">{i.tipo}</span></td>
+                <td className="mono">{fmtLegible(i.codigo_legible ?? '')}</td>
+                <td>{fechaEC(i.abierta_at)}</td>
+                <td>
+                  {puede(u, 'incidencia:resolver') && (
+                    <button
+                      className="sec"
+                      onClick={() => {
+                        const nota = prompt('Nota de resolución (qué se hizo):') ?? '';
+                        act(() => llamar(`/api/incidencias/${i.id}/resolver`, 'POST', { nota }), 'Incidencia resuelta');
+                      }}
+                    >
+                      Resolver
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!d.incidencias.length && (
+              <tr>
+                <td colSpan={4} className="muted" style={{ textAlign: 'center', padding: '16px' }}>
+                  Sin incidencias reportadas en este viaje.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Las incidencias de tipo sobrante / descarga incorrecta sin resolver bloquean la salida (no se pueden saltar con excepción).
+        </p>
       </div>
-
-      <div className="card"><h2>Incidencias abiertas del viaje ({d.incidencias.length})</h2>
-        <table><tbody>{d.incidencias.map((i: any) => <tr key={i.id}><td><span className="tag rojo">{i.tipo}</span></td><td className="mono">{fmtLegible(i.codigo_legible ?? '')}</td><td>{fechaEC(i.abierta_at)}</td>
-          <td>{puede(u, 'incidencia:resolver') && <button className="sec" onClick={() => { const nota = prompt('Nota de resolucion (que se hizo):') ?? ''; act(() => llamar(`/api/incidencias/${i.id}/resolver`, 'POST', { nota }), 'Incidencia resuelta'); }}>Resolver</button>}</td></tr>)}</tbody></table>
-        <p className="muted">Las incidencias de tipo sobrante / descarga incorrecta sin resolver bloquean la salida (no se pueden saltar con excepcion).</p></div>
-    </div>);
+    </div>
+  );
 }

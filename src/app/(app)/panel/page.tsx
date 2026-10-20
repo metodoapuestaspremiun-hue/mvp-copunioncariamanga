@@ -94,8 +94,9 @@ export default function Panel() {
         const esTripulacion = !puede(u, 'encomienda:crear') && (puede(u, 'salida:autorizar') || puede(u, 'escaneo:operar'));
         if (!esTripulacion) return null;
 
+        // Solo viajes que tengan bultos activos pendientes de entrega (items > 0)
         const viajesConCarga = (d.viajes || []).filter(
-          (v: any) => Number(v.items) > 0 || Number(v.tiene_manifiesto_cerrado) > 0
+          (v: any) => Number(v.items) > 0 && Number(v.tiene_manifiesto_cerrado) > 0
         );
         if (!viajesConCarga.length) return null;
 

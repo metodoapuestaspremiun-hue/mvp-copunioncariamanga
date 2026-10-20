@@ -19,8 +19,16 @@ export async function panel(db: Db) {
     `SELECT v.id, v.vehiculo, v.estado, v.parada_actual, v.conductor, v.ayudante,
             r.nombre AS ruta,
             p.nombre AS parada_nombre,
-            (SELECT COUNT(*) FROM manifiesto_item mi JOIN manifiesto m ON m.id=mi.manifiesto_id
-              WHERE m.viaje_id=v.id AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items,
+            (SELECT COUNT(*) FROM manifiesto_item mi
+               JOIN manifiesto m ON m.id=mi.manifiesto_id
+               JOIN bulto b ON b.id = mi.bulto_id
+              WHERE m.viaje_id=v.id
+                AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)
+                AND b.estado NOT IN ('entregado')) AS items,
+            (SELECT COUNT(*) FROM manifiesto_item mi
+               JOIN manifiesto m ON m.id=mi.manifiesto_id
+              WHERE m.viaje_id=v.id
+                AND m.version=(SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id)) AS items_total,
             (SELECT MAX(version) FROM manifiesto WHERE viaje_id=v.id AND cerrado_at IS NOT NULL) AS version_cerrada,
             (SELECT COUNT(*) FROM manifiesto WHERE viaje_id=v.id AND cerrado_at IS NOT NULL) AS tiene_manifiesto_cerrado,
             (SELECT COUNT(*) FROM autorizacion_salida a WHERE a.viaje_id=v.id AND a.parada_orden=v.parada_actual AND a.invalidada_at IS NULL) AS autorizada_salida,

@@ -85,9 +85,49 @@ export function Scanner({ onCode, ocupado }: { onCode: (codigo: string) => void;
   const enviar = () => { const c = txt.trim(); if (c) { onCode(c); setTxt(''); } };
   return (
     <div style={{ marginTop: 12 }}>
-      <div className="row" style={{ alignItems: 'flex-end', gap: 10 }}>
-        <label style={{ flex: 2 }}>
-          <span>📸 Código de Bulto (QR o Código de 8 letras)</span>
+      {/* Botón de Escanear con Cámara ARRIBA de Código de Bulto */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => { setMsg(''); setCam(c => !c); }}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            fontSize: 14,
+            fontWeight: 800,
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            background: cam ? '#fee2e2' : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            color: cam ? '#dc2626' : '#ffffff',
+            border: cam ? '1.5px solid #ef4444' : 'none',
+            boxShadow: cam ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.25)',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span style={{ fontSize: 18 }}>{cam ? '✕' : '📷'}</span>
+          <span>{cam ? 'Apagar Cámara de Escaneo' : 'Escanear con Cámara (Abrir Lector QR)'}</span>
+        </button>
+      </div>
+
+      {cam && (
+        <div style={{ marginBottom: 14, textAlign: 'center', background: '#0f172a', padding: 12, borderRadius: 16 }}>
+          <p style={{ color: '#94a3b8', fontSize: 13, margin: '0 0 10px' }}>
+            Apunta la cámara al código QR de la etiqueta del bulto
+          </p>
+          <video ref={video} className="video" playsInline muted style={{ maxWidth: 420, margin: '0 auto', display: 'block', borderRadius: 8 }} />
+        </div>
+      )}
+
+      {/* Entrada manual / Lector físico de Código de Bulto */}
+      <div style={{ marginTop: 8 }}>
+        <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334155', marginBottom: 6 }}>
+          📸 Código de Bulto (QR o Código de 8 letras)
+        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
           <input
             autoFocus
             value={txt}
@@ -95,29 +135,34 @@ export function Scanner({ onCode, ocupado }: { onCode: (codigo: string) => void;
             onKeyDown={e => e.key === 'Enter' && enviar()}
             placeholder="Apunta tu lector QR o escribe XXXX-XXXX"
             autoComplete="off"
-            style={{ fontSize: 15 }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 14,
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1.5px solid #cbd5e1',
+            }}
           />
-        </label>
-        <button onClick={enviar} disabled={ocupado || !txt.trim()}>
-          <span>⚡ Procesar Escaneo</span>
-        </button>
-        <button
-          type="button"
-          className="sec"
-          onClick={() => { setMsg(''); setCam(c => !c); }}
-          style={{ borderColor: cam ? 'var(--mal)' : undefined, color: cam ? 'var(--mal)' : undefined }}
-        >
-          {cam ? '✕ Apagar Cámara' : '📷 Escanear con Cámara'}
-        </button>
-      </div>
-      {cam && (
-        <div style={{ marginTop: 14, textAlign: 'center', background: '#0f172a', padding: 12, borderRadius: 16 }}>
-          <p style={{ color: '#94a3b8', fontSize: 13, margin: '0 0 10px' }}>
-            Apunta la cámara al código QR de la etiqueta del bulto
-          </p>
-          <video ref={video} className="video" playsInline muted style={{ maxWidth: 420, margin: '0 auto', display: 'block' }} />
+          <button
+            onClick={enviar}
+            disabled={ocupado || !txt.trim()}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13.5,
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+            }}
+          >
+            <span>⚡ Procesar</span>
+          </button>
         </div>
-      )}
+      </div>
       {msg && <div className="err" style={{ marginTop: 10 }}>{msg}</div>}
     </div>
   );
